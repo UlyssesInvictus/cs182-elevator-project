@@ -91,12 +91,16 @@ class GameState:
         """
         # TODO
         # also especially important for modifying score and generating next state
-        pass
         # example (abbreviated/cleaned) pacman code
         # if self.isWin() or self.isLose(): raise Exception('Can\'t generate a successor of a terminal state.')
         # state = GameState(self)
         # just change the state using pacman's defined actions
+        # TODO: implement this subpart of the method especially
         # PacmanRules.applyAction( state, action )
+        # --in the original that line does a lot of the elevator specific actions
+        # --like how to change score after running into food/ghost, dying, etc.
+        # --but here we can just probably include all of it in this method
+        # --since we only have one agent
         # state.data.scoreChange += -TIME_PENALTY # Penalty for waiting around
         # # Book keeping
         # state.data._agentMoved = agentIndex
@@ -104,6 +108,7 @@ class GameState:
         # GameState.explored.add(self)
         # GameState.explored.add(state)
         # return state
+        pass
 
     def getLegalPacmanActions(self):
         # TODO
@@ -264,7 +269,7 @@ def readCommand(argv):
                       help=default('How many episodes are training (suppresses output)'), default=0)
     # TODO: add more important properties
     # see init in GameState
-    
+
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
         raise Exception('Command line input not understood: ' + str(otherjunk))
