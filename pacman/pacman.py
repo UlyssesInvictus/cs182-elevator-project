@@ -81,13 +81,29 @@ class GameState:
         # TODO
         # this is the really important that lets learning work properly
         pass
+        # example (abbreviated/cleaned) pacman code
+        # if self.isWin() or self.isLose(): return []
+        # return PacmanRules.getLegalActions( self )
 
     def generateSuccessor(self, agentIndex, action):
         """
         Returns the successor state after the specified agent takes the action.
         """
         # TODO
+        # also especially important for modifying score and generating next state
         pass
+        # example (abbreviated/cleaned) pacman code
+        # if self.isWin() or self.isLose(): raise Exception('Can\'t generate a successor of a terminal state.')
+        # state = GameState(self)
+        # just change the state using pacman's defined actions
+        # PacmanRules.applyAction( state, action )
+        # state.data.scoreChange += -TIME_PENALTY # Penalty for waiting around
+        # # Book keeping
+        # state.data._agentMoved = agentIndex
+        # state.data.score += state.data.scoreChange
+        # GameState.explored.add(self)
+        # GameState.explored.add(state)
+        # return state
 
     def getLegalPacmanActions(self):
         # TODO
@@ -127,9 +143,12 @@ class GameState:
 
     def getScore(self):
         # TODO
-        # this is the other really important one
+        # also really important for letting RL calculate rewards properly
         # that lets RL work properly
         pass
+        # probaly just going to be something like:
+        # return float(self.score)
+        # where actual score is managed by getSuccessor
 
     def isLose(self):
         # TODO
@@ -162,20 +181,30 @@ class GameState:
         #         #hash(state)
         # return int((hash(tuple(self.agentStates)) + 13*hash(self.food) + 113* hash(tuple(self.capsules)) + 7 * hash(self.score)) % 1048575 )
 
-
-    #############################################
-    #             Helper methods:               #
-    # You shouldn't need to call these directly #
-    #############################################
-
     def __init__( self, prevState = None ):
         """
         Generates a new state by copying information from its predecessor.
         """
-        if prevState != None: # Initial state
-            self.data = GameStateData(prevState.data)
-        else:
-            self.data = GameStateData()
+        # TODO: list all init properties here
+        # will probably have to modify in some new arguments from the driver
+        # and command line arguments, especially stuff like
+        # num elevators, floors, passenger distribution function, etc.
+        pass
+        # example:
+        # if prevState is not None:
+        #     self.food = prevState.food.shallowCopy()
+        #     self.capsules = prevState.capsules[:]
+        #     self.agentStates = self.copyAgentStates( prevState.agentStates )
+        #     self.layout = prevState.layout
+        #     self._eaten = prevState._eaten
+        #     self.score = prevState.score
+        # self._foodEaten = None
+        # self._foodAdded = None
+        # self._capsuleEaten = None
+        # self._agentMoved = None
+        # self._lose = False
+        # self._win = False
+        # self.scoreChange = 0
 
     def deepCopy(self):
         state = GameState(self)
@@ -219,40 +248,23 @@ def readCommand(argv):
 
     parser.add_option('-n', '--numGames', dest='numGames', type='int',
                       help=default('the number of GAMES to play'), metavar='GAMES', default=1)
-    parser.add_option('-l', '--layout', dest='layout',
-                      help=default('the LAYOUT_FILE from which to load the map layout'),
-                      metavar='LAYOUT_FILE', default='mediumClassic')
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default('the agent TYPE in the pacmanAgents module to use'),
                       metavar='TYPE', default='KeyboardAgent')
-    parser.add_option('-t', '--textGraphics', action='store_true', dest='textGraphics',
-                      help='Display output as text only', default=False)
-    parser.add_option('-q', '--quietTextGraphics', action='store_true', dest='quietGraphics',
-                      help='Generate minimal output and no graphics', default=False)
     parser.add_option('-g', '--ghosts', dest='ghost',
                       help=default('the ghost agent TYPE in the ghostAgents module to use'),
                       metavar = 'TYPE', default='RandomGhost')
-    parser.add_option('-k', '--numghosts', type='int', dest='numGhosts',
-                      help=default('The maximum number of ghosts to use'), default=4)
-    parser.add_option('-z', '--zoom', type='float', dest='zoom',
-                      help=default('Zoom the size of the graphics window'), default=1.0)
     parser.add_option('-f', '--fixRandomSeed', action='store_true', dest='fixRandomSeed',
                       help='Fixes the random seed to always play the same game', default=False)
     parser.add_option('-r', '--recordActions', action='store_true', dest='record',
                       help='Writes game histories to a file (named by the time they were played)', default=False)
-    parser.add_option('--replay', dest='gameToReplay',
-                      help='A recorded game file (pickle) to replay', default=None)
     parser.add_option('-a','--agentArgs',dest='agentArgs',
                       help='Comma separated values sent to agent. e.g. "opt1=val1,opt2,opt3=val3"')
     parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
                       help=default('How many episodes are training (suppresses output)'), default=0)
-    parser.add_option('--frameTime', dest='frameTime', type='float',
-                      help=default('Time to delay between frames; <0 means keyboard'), default=0.1)
-    parser.add_option('-c', '--catchExceptions', action='store_true', dest='catchExceptions',
-                      help='Turns on exception handling and timeouts during games', default=False)
-    parser.add_option('--timeout', dest='timeout', type='int',
-                      help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
-
+    # TODO: add more important properties
+    # see init in GameState
+    
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
         raise Exception('Command line input not understood: ' + str(otherjunk))
