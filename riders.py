@@ -1,4 +1,7 @@
 # Riders are {source, destination, timestep}.
+# n riders
+# k elevators
+# c capacity
 def simulate(n, k, c, riders, agent):
     # Ride times are set on passenger arrival.
     ride_times = [-1 for _ in riders]
@@ -21,9 +24,9 @@ def simulate(n, k, c, riders, agent):
         for i in range(k):
             # Move up or down for the timestep.
             if actions[i] == UP and elevators[i].floor < k:
-                elevators[i].floor++
+                elevators[i].floor += 1
             if actions[i] == DOWN and elevators[i].floor > 0:
-                elevators[i].floor--
+                elevators[i].floor -= 1
             # Open for the timestep.
             if actions[i] == OPEN_UP or actions[i] == OPEN_DOWN:
                 for r in elevators[i].rider_ids:
@@ -32,12 +35,10 @@ def simulate(n, k, c, riders, agent):
                         ride_times[r] = timestep - riders[r].timestep
                     for r in waiting_riders[elevators[i].floor]:
                         if ((riders[r].destination > riders[r].source) ==
-                                (actions[i] == OPEN_UP)):
+                                (actions[i] == OPEN_UP)) and \
+                                    len(elevators[i].rider_ids) < c:
                             waiting_riders[elevators[i].floor].remove(r)
                             elevators[i].rider_ids.append(r)
-                if actions[i] == OPEN_UP:
-                    # TODO: ???
-                    pass
-                # Default action is to stay still with doors closed.
+            # Default action is to stay still with doors closed.
         timestep += 1
     return ride_times
