@@ -41,7 +41,7 @@ The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 """
 from game import Game
 import util, layout
-import sys, types, time, random, os
+import sys, types, time, random, os, copy
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -110,42 +110,6 @@ class GameState:
         # return state
         pass
 
-    def getLegalPacmanActions(self):
-        # TODO
-        # analogize to elevator
-        pass
-
-    def generatePacmanSuccessor(self, action):
-        """
-        Generates the successor state after the specified pacman move
-        """
-        # TODO:
-        # analogize to elevator
-        # return self.generateSuccessor(0, action)
-        pass
-
-    def getPacmanState(self):
-        """
-        Returns an AgentState object for pacman (in game.py)
-
-        state.pos gives the current position
-        state.direction gives the travel vector
-        """
-        # TODO:
-        # analogize to "getElevatorState"
-        # return self.data.agentStates[0].copy()
-        pass
-
-    def getGhostStates(self):
-        # TODO:
-        # analogize to "getAgentStates"
-        # return self.data.agentStates[1:]
-        pass
-
-    def getNumAgents(self):
-        # TODO
-        pass
-
     def getScore(self):
         # TODO
         # also really important for letting RL calculate rewards properly
@@ -155,67 +119,39 @@ class GameState:
         # return float(self.score)
         # where actual score is managed by getSuccessor
 
-    def isLose(self):
-        # TODO
-        pass
-
-    def isWin(self):
-        # TODO
-        pass
-
-    def __eq__(self, other):
-        """
-        Allows two states to be compared.
-        """
-        # TODO:
-        pass
-
-
-    def __hash__(self):
-        """
-        Allows states to be keys of dictionaries.
-        """
-        # TODO:
-        pass
-        # e.g.
-        # for i, state in enumerate( self.agentStates ):
-        #     try:
-        #         int(hash(state))
-        #     except TypeError, e:
-        #         print e
-        #         #hash(state)
-        # return int((hash(tuple(self.agentStates)) + 13*hash(self.food) + 113* hash(tuple(self.capsules)) + 7 * hash(self.score)) % 1048575 )
-
-    def __init__( self, prevState = None ):
+    def __init__(self, prevState=None):
         """
         Generates a new state by copying information from its predecessor.
         """
-        # TODO: list all init properties here
-        # will probably have to modify in some new arguments from the driver
-        # and command line arguments, especially stuff like
-        # num elevators, floors, passenger distribution function, etc.
-        pass
-        # example:
-        # if prevState is not None:
-        #     self.food = prevState.food.shallowCopy()
-        #     self.capsules = prevState.capsules[:]
-        #     self.agentStates = self.copyAgentStates( prevState.agentStates )
-        #     self.layout = prevState.layout
-        #     self._eaten = prevState._eaten
-        #     self.score = prevState.score
-        # self._foodEaten = None
-        # self._foodAdded = None
-        # self._capsuleEaten = None
-        # self._agentMoved = None
-        # self._lose = False
-        # self._win = False
-        # self.scoreChange = 0
-
-    def deepCopy(self):
-        state = GameState(self)
-        # TODO: replicate with stuff in init
-        # state.prop = self.prop etc.
-        return state
+        # TODO:
+        # - passenger arrival distribution function
+        # - turn dicts into classes
+        # - add more useful bookkeeping (# riders delivered, # still waiting)
+        if prevState is not None:
+            self.numElevators = prevState.numElevators
+            self.numFloors = prevState.numFloors
+            self.elevators = copy.deepCopy(prevState.elevators)
+            self.riders = copy.deepCopy(prevState.riders)
+            self.timeLeft = prevState.timeLeft
+            self.score = prevState.score
+        else:
+            # TODO: randomize values
+            self.numElevators = 1
+            self.numFloors = 10
+            self.elevators = [
+                {
+                    direction: "wait",
+                    floor: 0,
+                    rider_ids: []
+                } for _ in range(self.numElevators)]
+            self.riders = [
+                {
+                    source: 0,
+                    dest: self.numFloors - 1,
+                    timeWaited: 0
+                } for _ in range(5)]
+            self.timeLeft = 100
+            self.score = 0
 
 #############################
 # FRAMEWORK TO START A GAME #
