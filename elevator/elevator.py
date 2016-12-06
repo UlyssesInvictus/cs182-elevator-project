@@ -74,34 +74,58 @@ class GameState:
         return tmp
     getAndResetExplored = staticmethod(getAndResetExplored)
 
-    def getLegalActionsForSingleElevator(elevator_id):
-        # TODO
-        # High level: options are UP, DOWN, OPEN_UP, OPEN_DOWN, STALL
-        # UP/OPEN_UP and DOWN/OPEN_DOWN are illegal on the top and bottom floors respectively
-        # If passengers are in the elevator:
-        #  -The elevator is restricted to UP/OPEN_UP or DOWN/OPEN_DOWN depending on the direction of riders
-        #  -The elevator must OPEN on a floor where a rider wants to get off
-        pass
+
+-elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
+
+    def getLegalActionsForSingleElevator(self, elevator_id):
+        elevator = self.elevators[elevator_id]
+        # Default to physical limitations.
+        can_stall = True
+        can_go_down = elevator.floor > 0
+        can_go_up = elevator.floor < self.numFloors - 1
+
+        # Never stall or change direction on a rider.
+        for rider in elevator.riders:
+            can_stall = False
+            if rider.dest < elevator.floor:
+                can_go_up = False
+            elif rider.dest > elevator.floor:
+                can_go_down = False
+            else
+                must_open = True
+
+        actions = []
+        if can_stall:
+            actions.append("STALL")
+        if can_can_go_down:
+            actions.append("DOWN")
+            actions.append("OPEN_DOWN")
+        if can_can_go_up:
+            actions.append("UP")
+            actions.append("OPEN_UP")
+        if must_open:
+            actions.remove("UP")
+            actions.remove("DOWN")
+        return actions
 
     # Maps a list of lists to a list of selections from each list.
     def getCombinations(self, lists):
-        # TODO
-        # High level:
-        #  if len(lists) == 0, return [[]]
-        #  else return [a::l] for each a in lists[0] and l in getCombinations(lists[1:])
+        if len(lists) == 0:
+            return [[]]
+        combinations = []
+        # Combine things in the first list with every combinations of the rest.
+        for suffix in self.getCombinations(lists[1:]):
+            for prefix in lists[0]:
+                combination = [prefix]
+                combination.extend(suffix)
+                combinations.append(combination)
+        return combinations
 
     def getLegalActions(self, agentIndex=0):
         """
         Returns the legal actions for the agent specified.
         """
-        # TODO
-        # getCombinations(map(range(k), getLegalActionsForSingleElevator))
-        # convert each action list to a tuple
-
-        pass
-        # example (abbreviated/cleaned) pacman code
-        # if self.isWin() or self.isLose(): return []
-        # return PacmanRules.getLegalActions( self )
+        return getCombinations(map(range(k), getLegalActionsForSingleElevator))
 
     def generateSuccessor(self, agentIndex, action):
         """
@@ -143,13 +167,8 @@ class GameState:
         pass
 
     def getScore(self):
-        # TODO
-        # also really important for letting RL calculate rewards properly
-        # that lets RL work properly
-        pass
-        # probaly just going to be something like:
-        # return float(self.score)
-        # where actual score is managed by getSuccessor
+        # see generateSuccessor
+        return return float(self.score)
 
     def __init__(self, prevState=None):
         """
@@ -166,6 +185,7 @@ class GameState:
         # timestep = 0
         # -waiting_riders = [[] for _ in range(n)] : lists by floor of src/dest/wait_time triples
         # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
+        # -score = 0
         
         # TODO: some initial generateArrivals functions:
         # -people just go up to random floors, arriving with poisson distribution for some rate
@@ -175,29 +195,24 @@ class GameState:
         # -union samples from the first three distributions with rates that vary periodically by timestep
 
         if prevState is not None:
+            # Parameters.
             self.numElevators = prevState.numElevators
             self.numFloors = prevState.numFloors
+            self.elevatorCapacity = prevState.elevatorCapacity
+            self.generateArrivals = prevState.generateArrivals
+            # Simulation state.
+            self.timestep = prevState.timestep
             self.elevators = copy.deepCopy(prevState.elevators)
-            self.riders = copy.deepCopy(prevState.riders)
-            self.timeLeft = prevState.timeLeft
+            self.waiting_riders = copy.deepCopy(prevState.waiting_riders)
             self.score = prevState.score
         else:
             # TODO: randomize values
             self.numElevators = 1
             self.numFloors = 10
-            self.elevators = [
-                {
-                    direction: "wait",
-                    floor: 0,
-                    rider_ids: []
-                } for _ in range(self.numElevators)]
-            self.riders = [
-                {
-                    source: 0,
-                    dest: self.numFloors - 1,
-                    timeWaited: 0
-                } for _ in range(5)]
-            self.timeLeft = 100
+            self.elevatorCapacity = 10
+            self.generateArrivals = lambda timestep: [(0, 5)]
+            self.elevators = [{floor: 0, riders: []} for _ in range(self.numElevators)]
+            # TODO
             self.score = 0
 
 #############################
