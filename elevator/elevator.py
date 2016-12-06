@@ -74,12 +74,30 @@ class GameState:
         return tmp
     getAndResetExplored = staticmethod(getAndResetExplored)
 
+    def getLegalActionsForSingleElevator(elevator_id):
+        # TODO
+        # High level: options are UP, DOWN, OPEN_UP, OPEN_DOWN, STALL
+        # UP/OPEN_UP and DOWN/OPEN_DOWN are illegal on the top and bottom floors respectively
+        # If passengers are in the elevator:
+        #  -The elevator is restricted to UP/OPEN_UP or DOWN/OPEN_DOWN depending on the direction of riders
+        #  -The elevator must OPEN on a floor where a rider wants to get off
+        pass
+
+    # Maps a list of lists to a list of selections from each list.
+    def getCombinations(self, lists):
+        # TODO
+        # High level:
+        #  if len(lists) == 0, return [[]]
+        #  else return [a::l] for each a in lists[0] and l in getCombinations(lists[1:])
+
     def getLegalActions(self, agentIndex=0):
         """
         Returns the legal actions for the agent specified.
         """
         # TODO
-        # this is the really important that lets learning work properly
+        # getCombinations(map(range(k), getLegalActionsForSingleElevator))
+        # convert each action list to a tuple
+
         pass
         # example (abbreviated/cleaned) pacman code
         # if self.isWin() or self.isLose(): return []
@@ -90,6 +108,20 @@ class GameState:
         Returns the successor state after the specified agent takes the action.
         """
         # TODO
+        # high-level: copy the current state, and:
+        # -increment timestep
+        # 
+        # -for each elevator:
+        #  -copy logic from riders.py (update the floor, move people in/out)
+        # -for each person waiting:
+        #    -increment the person's wait time
+        #    -decrease the state score by the person's wait_time
+        # -for each person in an open elevator not at their source:
+        #    -increment the person's wait time
+        #    -decrease the state score by the person's wait time
+        # -add new arrivals (query generateArrivals())
+
+
         # also especially important for modifying score and generating next state
         # example (abbreviated/cleaned) pacman code
         # if self.isWin() or self.isLose(): raise Exception('Can\'t generate a successor of a terminal state.')
@@ -124,9 +156,24 @@ class GameState:
         Generates a new state by copying information from its predecessor.
         """
         # TODO:
-        # - passenger arrival distribution function
-        # - turn dicts into classes
-        # - add more useful bookkeeping (# riders delivered, # still waiting)
+        # State is:
+        # *parameters*
+        # -numFloors (n)
+        # -numElevators (k)
+        # -elevatorCapacity (c)
+        # -generateArrivals (function to generate src/dest pairs for people arriving at a timestep)
+        # *state*
+        # timestep = 0
+        # -waiting_riders = [[] for _ in range(n)] : lists by floor of src/dest/wait_time triples
+        # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
+        
+        # TODO: some initial generateArrivals functions:
+        # -people just go up to random floors, arriving with poisson distribution for some rate
+        # -people just leave from random floors, arriving with poisson distribution for some rate
+        # -people move from random floors to random floors, poisson
+        # -union samples from the first three distributions with fixed rates
+        # -union samples from the first three distributions with rates that vary periodically by timestep
+
         if prevState is not None:
             self.numElevators = prevState.numElevators
             self.numFloors = prevState.numFloors
