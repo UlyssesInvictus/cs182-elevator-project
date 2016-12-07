@@ -42,6 +42,7 @@ The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 from game import Game
 import util, layout
 import sys, types, time, random, os, copy
+from numpy.random import poisson
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -74,8 +75,7 @@ class GameState:
         return tmp
     getAndResetExplored = staticmethod(getAndResetExplored)
 
-
--elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
+# -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
 
     def getLegalActionsForSingleElevator(self, elevator_id):
         elevator = self.elevators[elevator_id]
@@ -134,7 +134,7 @@ class GameState:
         # TODO
         # high-level: copy the current state, and:
         # -increment timestep
-        # 
+        #
         # -for each elevator:
         #  -copy logic from riders.py (update the floor, move people in/out)
         # -for each person waiting:
@@ -170,6 +170,29 @@ class GameState:
         # see generateSuccessor
         return return float(self.score)
 
+    def genArrival(self):
+        # TODO: debate lambdas for poisson processes
+        lGroundSource = 1  # maybe exponential decay from time: 0 to end?
+        lGroundDest = 1  # maybe exponential decay from time: end to 0?
+        lRandom = 1  # maybe constant?
+
+        # lots of riders are arriving at the ground: lambda = #/timestep
+        groundSource = [(0, random.randint(1, self.numFloors-1))
+                        for _ in poisson(lGroundSource)]
+        # lots of riders also want to get to the ground: lambda = #/timestep
+        groundDest = [(random.randint(1, self.numFloors-1), 0)
+                      for _ in poisson(lGroundDest)]
+        # lots of random other movement throughout
+        randomRiders = []
+        for _ in poisson(lRandom):
+            source = random.randint(0, self.numFloors-1)
+            while True:
+                dest = random.randint(0, self.numFloors-1)
+                if dest != source:
+                    break
+            randomRiders += [(source, dest)]
+        return groundSource + groundDest + randomRiders
+
     def __init__(self, prevState=None):
         """
         Generates a new state by copying information from its predecessor.
@@ -186,13 +209,6 @@ class GameState:
         # -waiting_riders = [[] for _ in range(n)] : lists by floor of src/dest/wait_time triples
         # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
         # -score = 0
-        
-        # TODO: some initial generateArrivals functions:
-        # -people just go up to random floors, arriving with poisson distribution for some rate
-        # -people just leave from random floors, arriving with poisson distribution for some rate
-        # -people move from random floors to random floors, poisson
-        # -union samples from the first three distributions with fixed rates
-        # -union samples from the first three distributions with rates that vary periodically by timestep
 
         if prevState is not None:
             # Parameters.
