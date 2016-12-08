@@ -74,9 +74,6 @@ class GameState:
         return tmp
     getAndResetExplored = staticmethod(getAndResetExplored)
 
-
--elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
-
     def getLegalActionsForSingleElevator(self, elevator_id):
         elevator = self.elevators[elevator_id]
         # Default to physical limitations.
@@ -91,7 +88,7 @@ class GameState:
                 can_go_up = False
             elif rider.dest > elevator.floor:
                 can_go_down = False
-            else
+            else:
                 must_open = True
 
         actions = []
@@ -152,8 +149,8 @@ class GameState:
                 # Waiting riders on the floor can get on.
                 updated_waiting = []
                 for dest, wait in successor.waiting_riders[elevator.floor]:
-                    if (dest > elevator.floor) == (action[i] == "OPEN_UP")) \
-                            and len(elevator.riders) < c:
+                    if ((dest > elevator.floor) == (action[i] == "OPEN_UP") and
+                            (len(elevator.riders) < c)):
                         elevator.riders.append((dest, wait))
                     else:
                         updated_waiting.append((dest, wait))
@@ -187,7 +184,7 @@ class GameState:
         # -waiting_riders = [[] for _ in range(n)] : lists by floor of dest/wait_time triples
         # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
         # -score = 0
-        
+
         # TODO: some initial generateArrivals functions:
         # -people just go up to random floors, arriving with poisson distribution for some rate
         # -people just leave from random floors, arriving with poisson distribution for some rate
