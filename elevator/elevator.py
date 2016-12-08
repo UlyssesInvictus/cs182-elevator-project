@@ -183,7 +183,7 @@ class GameState:
         # see generateSuccessor
         return float(self.score)
 
-    def generateArrivals(self, timeStep):
+    def generateArrivals(self, timestep):
         # TODO: debate lambdas for poisson processes
         lGroundSource = 0.2  # maybe exponential decay from time: 0 to end?
         lGroundDest = 0.2  # maybe exponential decay from time: end to 0?
@@ -335,30 +335,60 @@ def readCommand(argv):
     return args
 
 
-def runGames(numGames, numTraining, numSteps, quiet):
-    import __main__
-
-    games = []
-
-    # things to pass into agent:
-    # alpha    - learning rate (default 0.5)
-    # epsilon  - exploration rate (default 0.5)
-    # gamma    - discount factor (default 1)
-    agent = QLearningAgent(numTraining=numTraining)
-    for i in range(numGames + numTraining):
-        game = Game(agent)
-        game.state = GameState()
-        game.run(numSteps, quiet)
-        if (i >= numTraining):
-            games.append(game)
-            print 'Ran episode (%d/%d) of actual: score (%d)' % (i-numTraining+1, numGames, game.state.getScore())
+def runMonteCarlo():
+    print "monte carlo"
+    state = GameState()
+    # Run to 100 timesteps.
+    while state.timestep < 100:
+        print "action"
+        actions = state.getLegalActions()
+        if len(actions) == 1:
+            state = state.generateSuccessor(actions[0])
         else:
-            print 'Ran (%d/%d) of training: score (%d)' % (i, numTraining, game.state.getScore())
+            best_score = None
+            best_action = None
+            # Run 10000 random simulations.
+            for _ in range(1000):
+                # Remember the first action.
+                first_action = random.choice(actions)
+                sim_state = state.generateSuccessor(first_action)
+                # Each simulation goes 20 timesteps out.
+                for _ in range(25):
+                    action = random.choice(sim_state.getLegalActions())
+                    sim_state = sim_state.generateSuccessor(action)
+                if best_score == None or sim_state.getScore() < best_score:
+                    best_score = sim_state.getScore()
+                    best_action = first_action
+            # Take the best action.
+            state = state.generateSuccessor(best_action)
+    print state.getScore()
 
-    scores = [game.state.getScore() for game in games]
-    print 'Average Score:', sum(scores) / float(len(scores))
-    print 'Scores:       ', ', '.join([str(score) for score in scores])
-    return games
+
+def runGames(numGames, numTraining, numSteps, quiet):
+    # import __main__
+
+    # games = []
+
+    # # things to pass into agent:
+    # # alpha    - learning rate (default 0.5)
+    # # epsilon  - exploration rate (default 0.5)
+    # # gamma    - discount factor (default 1)
+    # agent = QLearningAgent(numTraining=numTraining)
+    # for i in range(numGames + numTraining):
+    #     game = Game(agent)
+    #     game.state = GameState()
+    #     game.run(numSteps, quiet)
+    #     if (i >= numTraining):
+    #         games.append(game)
+    #         print 'Ran episode (%d/%d) of actual: score (%d)' % (i-numTraining+1, numGames, game.state.getScore())
+    #     else:
+    #         print 'Ran (%d/%d) of training: score (%d)' % (i, numTraining, game.state.getScore())
+
+    # scores = [game.state.getScore() for game in games]
+    # print 'Average Score:', sum(scores) / float(len(scores))
+    # print 'Scores:       ', ', '.join([str(score) for score in scores])
+    # return games
+    runMonteCarlo()
 
 if __name__ == '__main__':
     """
