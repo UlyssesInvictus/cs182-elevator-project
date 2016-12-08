@@ -90,9 +90,9 @@ class Game:
     The Game manages the control flow, soliciting actions from agents.
     """
 
-    def __init__(self, agents, startingIndex=0):
+    def __init__(self, agent, startingIndex=0):
         self.agentCrashed = False
-        self.agents = agents
+        self.agent = agent
         self.startingIndex = startingIndex
         self.gameOver = False
         self.moveHistory = []
@@ -106,39 +106,28 @@ class Game:
             # TODO: set this properly?
             return 0.0
 
-    def run(self):
+    def run(self, num_steps):
         """
         Main control loop for game play.
         """
         self.numMoves = 0
 
         # inform learning agents of the game start
-        for i in range(len(self.agents)):
-            agent = self.agents[i]
-            agent.registerInitialState(self.state.deepCopy())
-
-        agentIndex = self.startingIndex
-        numAgents = len(self.agents)
+        agent = self.agent
+        agent.registerInitialState(self.state.deepCopy())
 
         while not self.gameOver:
-            # Fetch the next agent
-            agent = self.agents[agentIndex]
-            move_time = 0
-            skip_action = False
             # Generate an observation of the state
             observation = agent.observationFunction(self.state.deepCopy())
             # Solicit an action
-            action = None
             action = agent.getAction(observation)
             # Execute the action
-            self.moveHistory.append((agentIndex, action))
-            self.state = self.state.generateSuccessor(agentIndex, action)
+            self.moveHistory.append((0, action))
+            self.state = self.state.generateSuccessor(0, action)
             # Track progress
-            if agentIndex == numAgents + 1:
-                self.numMoves += 1
-            # Next agent
-            agentIndex = (agentIndex + 1) % numAgents
+            self.numMoves += 1
+            if numMoves > num_steps:
+                self.gameOver = True
 
         # inform a learning agent of the game result
-        for agentIndex, agent in enumerate(self.agents):
-            agent.final(self.state)
+        agent.final(self.state)

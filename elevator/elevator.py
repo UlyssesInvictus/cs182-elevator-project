@@ -325,30 +325,21 @@ def readCommand(argv):
     return args
 
 
-def runGames(layout, pacman, ghosts, numGames, numTraining=0, timeout=30):
+def runGames(agent, numGames, numTraining=0):
     import __main__
 
     games = []
 
-    for i in range(numGames):
-        # TODO: properly define agents
-        agents = [pacman] + ghosts[:layout.getNumGhosts()]
-        initState = GameState()
-        game = Game(agents)
-        game.state = initState
+    for i in range(numGames + numTraining):
+        game = Game(agent)
+        game.state = GameState()
         game.run()
-        # TODO: need this part?
-        games.append(game)
+        if (i > numTraining):
+            games.append(game)
 
-    if (numGames-numTraining) > 0:
-        scores = [game.state.getScore() for game in games]
-        wins = [game.state.isWin() for game in games]
-        winRate = wins.count(True) / float(len(wins))
-        print 'Average Score:', sum(scores) / float(len(scores))
-        print 'Scores:       ', ', '.join([str(score) for score in scores])
-        print 'Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate)
-        print 'Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins])
-
+    scores = [game.state.getScore() for game in games]
+    print 'Average Score:', sum(scores) / float(len(scores))
+    print 'Scores:       ', ', '.join([str(score) for score in scores])
     return games
 
 if __name__ == '__main__':
