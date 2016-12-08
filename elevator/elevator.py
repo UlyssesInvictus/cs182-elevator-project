@@ -125,46 +125,48 @@ class GameState:
         """
         Returns the legal actions for the agent specified.
         """
-        return getCombinations(map(range(k), getLegalActionsForSingleElevator))
+        lists = getCombinations(map(range(k), getLegalActionsForSingleElevator))
+        return [tuple(action_list) for action_list in lists]
 
     def generateSuccessor(self, agentIndex, action):
         """
         Returns the successor state after the specified agent takes the action.
         """
-        # TODO
-        # high-level: copy the current state, and:
-        # -increment timestep
-        # 
-        # -for each elevator:
-        #  -copy logic from riders.py (update the floor, move people in/out)
-        # -for each person waiting:
-        #    -increment the person's wait time
-        #    -decrease the state score by the person's wait_time
-        # -for each person in an open elevator not at their source:
-        #    -increment the person's wait time
-        #    -decrease the state score by the person's wait time
-        # -add new arrivals (query generateArrivals())
-
-
-        # also especially important for modifying score and generating next state
-        # example (abbreviated/cleaned) pacman code
-        # if self.isWin() or self.isLose(): raise Exception('Can\'t generate a successor of a terminal state.')
-        # state = GameState(self)
-        # just change the state using pacman's defined actions
-        # TODO: implement this subpart of the method especially
-        # PacmanRules.applyAction( state, action )
-        # --in the original that line does a lot of the elevator specific actions
-        # --like how to change score after running into food/ghost, dying, etc.
-        # --but here we can just probably include all of it in this method
-        # --since we only have one agent
-        # state.data.scoreChange += -TIME_PENALTY # Penalty for waiting around
-        # # Book keeping
-        # state.data._agentMoved = agentIndex
-        # state.data.score += state.data.scoreChange
-        # GameState.explored.add(self)
-        # GameState.explored.add(state)
-        # return state
-        pass
+        successor = GameState(self)
+        successor.timestep += 1
+        # Elevator logic.
+        for i in len(successor.elevators):
+            elevator = successor.elevators[i]
+            if action[i] == "UP":
+                elevator.floor += 1
+            elif action[i] == "DOWN":
+                elevator.floor -= 1
+            elif action[i] == "OPEN_UP" or action[i] == "OPEN_DOWN":
+                # Riders either get off or cause a waiting penalty.
+                updated_riders = []
+                for dest, wait in elevator.riders:
+                    if dest != elevator.floor:
+                        updated_riders.append((dest, wait + 1))
+                    successor.score -= wait + 1
+                elevator.riders = updated_riders
+                # Waiting riders on the floor can get on.
+                updated_waiting = []
+                for dest, wait in successor.waiting_riders[elevator.floor]:
+                    if (dest > elevator.floor) == (action[i] == "OPEN_UP")) \
+                            and len(elevator.riders) < c:
+                        elevator.riders.append((dest, wait))
+                    else:
+                        updated_waiting.append((dest, wait))
+                successor.waiting_riders[elevator.floor] = updated_waiting
+        # Update waiting passenger wait times.
+        for floor_list in successor.waiting_riders:
+            for dest, wait in len(floor_list):
+                floor_list[i] = (dest, wait + 1)
+                successor.score -= (wait + 1)
+        # Add new arrivals.
+        for src, dest in successor.generateArrivals(successor.timestep):
+            successor.waiting_riders[src].append((dest, 0))
+        return successor
 
     def getScore(self):
         # see generateSuccessor
@@ -174,7 +176,6 @@ class GameState:
         """
         Generates a new state by copying information from its predecessor.
         """
-        # TODO:
         # State is:
         # *parameters*
         # -numFloors (n)
@@ -183,7 +184,7 @@ class GameState:
         # -generateArrivals (function to generate src/dest pairs for people arriving at a timestep)
         # *state*
         # timestep = 0
-        # -waiting_riders = [[] for _ in range(n)] : lists by floor of src/dest/wait_time triples
+        # -waiting_riders = [[] for _ in range(n)] : lists by floor of dest/wait_time triples
         # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
         # -score = 0
         
@@ -206,13 +207,13 @@ class GameState:
             self.waiting_riders = copy.deepCopy(prevState.waiting_riders)
             self.score = prevState.score
         else:
-            # TODO: randomize values
             self.numElevators = 1
             self.numFloors = 10
             self.elevatorCapacity = 10
             self.generateArrivals = lambda timestep: [(0, 5)]
+            self.timestep = 0
             self.elevators = [{floor: 0, riders: []} for _ in range(self.numElevators)]
-            # TODO
+            self.waiting_riders = [[] for _ in range(n)]
             self.score = 0
 
 #############################
