@@ -43,7 +43,7 @@ from game import Game
 import util
 import sys, types, time, random, os, copy
 from qlearningAgents import *
-from numpy.random import poisson
+from numpy.random import seed, poisson
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -322,6 +322,7 @@ def readCommand(argv):
 
     # Fix the random seed
     if options.fixRandomSeed:
+        seed(182)
         random.seed('cs182')
 
     args['numTraining'] = options.numTraining
