@@ -82,7 +82,7 @@ class GameState:
         # Default to physical limitations.
         can_stall = True
         can_go_down = elevator.floor > 0
-        can_go_up = elevator.floor < self.numFloors - 1
+        can_go_up = elevator.floor < self.num_floors - 1
 
         # Never stall or change direction on a rider.
         for rider in elevator.riders:
@@ -158,6 +158,7 @@ class GameState:
                     else:
                         updated_waiting.append((dest, wait))
                 successor.waiting_riders[elevator.floor] = updated_waiting
+                elevator.riders.sort()
         # Update waiting passenger wait times.
         for floor_list in successor.waiting_riders:
             for dest, wait in len(floor_list):
@@ -166,13 +167,38 @@ class GameState:
         # Add new arrivals.
         for src, dest in successor.generateArrivals(successor.timestep):
             successor.waiting_riders[src].append((dest, 0))
+        for floor_list in successor.waiting_riders
+            floor_list.sort()
         return successor
 
     def getScore(self):
         # see generateSuccessor
         return return float(self.score)
 
-    def __init__(self, prevState=None):
+    def genArrival(self):
+        # TODO: debate lambdas for poisson processes
+        lGroundSource = 1  # maybe exponential decay from time: 0 to end?
+        lGroundDest = 1  # maybe exponential decay from time: end to 0?
+        lRandom = 1  # maybe constant?
+
+        # lots of riders are arriving at the ground: lambda = #/timestep
+        groundSource = [(0, random.randint(1, self.num_floors-1))
+                        for _ in poisson(lGroundSource)]
+        # lots of riders also want to get to the ground: lambda = #/timestep
+        groundDest = [(random.randint(1, self.num_floors-1), 0)
+                      for _ in poisson(lGroundDest)]
+        # lots of random other movement throughout
+        randomRiders = []
+        for _ in poisson(lRandom):
+            source = random.randint(0, self.num_floors-1)
+            while True:
+                dest = random.randint(0, self.num_floors-1)
+                if dest != source:
+                    break
+            randomRiders += [(source, dest)]
+        return groundSource + groundDest + randomRiders
+
+    def __init__(self, prev_state=None):
         """
         Generates a new state by copying information from its predecessor.
         """
@@ -187,34 +213,39 @@ class GameState:
         # -waiting_riders = [[] for _ in range(n)] : lists by floor of dest/wait_time triples
         # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
         # -score = 0
-        
-        # TODO: some initial generateArrivals functions:
-        # -people just go up to random floors, arriving with poisson distribution for some rate
-        # -people just leave from random floors, arriving with poisson distribution for some rate
-        # -people move from random floors to random floors, poisson
-        # -union samples from the first three distributions with fixed rates
-        # -union samples from the first three distributions with rates that vary periodically by timestep
 
-        if prevState is not None:
+        if prev_state is not None:
             # Parameters.
-            self.numElevators = prevState.numElevators
-            self.numFloors = prevState.numFloors
-            self.elevatorCapacity = prevState.elevatorCapacity
-            self.generateArrivals = prevState.generateArrivals
+            self.num_elevators = prev_state.numElevators
+            self.num_floors = prev_state.numFloors
+            self.elevator_capacity = prev_state.elevatorCapacity
+            self.generate_arrivals = prev_state.generateArrivals
             # Simulation state.
-            self.timestep = prevState.timestep
-            self.elevators = copy.deepCopy(prevState.elevators)
-            self.waiting_riders = copy.deepCopy(prevState.waiting_riders)
-            self.score = prevState.score
+            self.timestep = prev_state.timestep
+            self.elevators = copy.deepCopy(prev_state.elevators)
+            self.waiting_riders = copy.deepCopy(prev_state.waiting_riders)
+            self.score = prev_state.score
         else:
-            self.numElevators = 1
-            self.numFloors = 10
-            self.elevatorCapacity = 10
-            self.generateArrivals = lambda timestep: [(0, 5)]
+            self.num_elevators = 1
+            self.num_floors = 10
+            self.elevator_capacity = 10
+            self.generate_arrivals = lambda timestep: [(0, 5)]
             self.timestep = 0
-            self.elevators = [{floor: 0, riders: []} for _ in range(self.numElevators)]
+            self.elevators = [{floor: 0, riders: []} for _ in range(self.num_elevators)]
             self.waiting_riders = [[] for _ in range(n)]
             self.score = 0
+
+    def __hash__( self ):
+        """
+        Allows states to be keys of dictionaries.
+        """
+        data = [self.timestep, self.score]
+        for elevator in self.elevators:
+            data.append(elevator.floor)
+            data.append(tuple(elevator.riders))
+        for rider_list in self.waiting_riders:
+            data.append(tuple(rider_list))
+        return hash(tuple(data))
 
 #############################
 # FRAMEWORK TO START A GAME #
