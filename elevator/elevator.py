@@ -81,6 +81,7 @@ class GameState:
         can_go_down = elevator.floor > 0
         can_go_up = elevator.floor < self.numFloors - 1
         must_open = False
+        can_go_up = elevator.floor < self.num_floors - 1
 
         # Never stall or change direction on a rider.
         for rider in elevator.riders:
@@ -156,6 +157,7 @@ class GameState:
                     else:
                         updated_waiting.append((dest, wait))
                 successor.waiting_riders[elevator.floor] = updated_waiting
+                elevator.riders.sort()
         # Update waiting passenger wait times.
         for i in range(len(successor.waiting_riders)):
             floor_list = successor.waiting_riders[i]
@@ -166,13 +168,38 @@ class GameState:
         # Add new arrivals.
         for src, dest in successor.generateArrivals(successor.timestep):
             successor.waiting_riders[src].append((dest, 0))
+        for floor_list in successor.waiting_riders
+            floor_list.sort()
         return successor
 
     def getScore(self):
         # see generateSuccessor
         return return float(self.score)
 
-    def __init__(self, prevState=None):
+    def genArrival(self, timeStep):
+        # TODO: debate lambdas for poisson processes
+        lGroundSource = 1  # maybe exponential decay from time: 0 to end?
+        lGroundDest = 1  # maybe exponential decay from time: end to 0?
+        lRandom = 1  # maybe constant?
+
+        # lots of riders are arriving at the ground: lambda = #/timestep
+        groundSource = [(0, random.randint(1, self.num_floors-1))
+                        for _ in poisson(lGroundSource)]
+        # lots of riders also want to get to the ground: lambda = #/timestep
+        groundDest = [(random.randint(1, self.num_floors-1), 0)
+                      for _ in poisson(lGroundDest)]
+        # lots of random other movement throughout
+        randomRiders = []
+        for _ in poisson(lRandom):
+            source = random.randint(0, self.num_floors-1)
+            while True:
+                dest = random.randint(0, self.num_floors-1)
+                if dest != source:
+                    break
+            randomRiders += [(source, dest)]
+        return groundSource + groundDest + randomRiders
+
+    def __init__(self, prev_state=None):
         """
         Generates a new state by copying information from its predecessor.
         """
@@ -188,6 +215,7 @@ class GameState:
         # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
         # -score = 0
 
+<<<<<<< HEAD
         # TODO: some initial generateArrivals functions:
         # -people just go up to random floors, arriving with poisson distribution for some rate
         # -people just leave from random floors, arriving with poisson distribution for some rate
@@ -196,25 +224,40 @@ class GameState:
         # -union samples from the first three distributions with rates that vary periodically by timestep
 
         if prevState is not None:
+=======
+        if prev_state is not None:
+>>>>>>> master
             # Parameters.
-            self.numElevators = prevState.numElevators
-            self.numFloors = prevState.numFloors
-            self.elevatorCapacity = prevState.elevatorCapacity
-            self.generateArrivals = prevState.generateArrivals
+            self.num_elevators = prev_state.numElevators
+            self.num_floors = prev_state.numFloors
+            self.elevator_capacity = prev_state.elevatorCapacity
+            self.generate_arrivals = prev_state.generateArrivals
             # Simulation state.
-            self.timestep = prevState.timestep
-            self.elevators = copy.deepCopy(prevState.elevators)
-            self.waiting_riders = copy.deepCopy(prevState.waiting_riders)
-            self.score = prevState.score
+            self.timestep = prev_state.timestep
+            self.elevators = copy.deepCopy(prev_state.elevators)
+            self.waiting_riders = copy.deepCopy(prev_state.waiting_riders)
+            self.score = prev_state.score
         else:
-            self.numElevators = 1
-            self.numFloors = 10
-            self.elevatorCapacity = 10
-            self.generateArrivals = lambda timestep: [(0, 5)]
+            self.num_elevators = 1
+            self.num_floors = 10
+            self.elevator_capacity = 10
+            self.generate_arrivals = lambda timestep: [(0, 5)]
             self.timestep = 0
-            self.elevators = [{floor: 0, riders: []} for _ in range(self.numElevators)]
+            self.elevators = [{floor: 0, riders: []} for _ in range(self.num_elevators)]
             self.waiting_riders = [[] for _ in range(n)]
             self.score = 0
+
+    def __hash__( self ):
+        """
+        Allows states to be keys of dictionaries.
+        """
+        data = [self.timestep, self.score]
+        for elevator in self.elevators:
+            data.append(elevator.floor)
+            data.append(tuple(elevator.riders))
+        for rider_list in self.waiting_riders:
+            data.append(tuple(rider_list))
+        return hash(tuple(data))
 
 #############################
 # FRAMEWORK TO START A GAME #
@@ -294,30 +337,21 @@ def readCommand(argv):
     return args
 
 
-def runGames(layout, pacman, ghosts, numGames, numTraining=0, timeout=30):
+def runGames(agent, numGames, numTraining=0):
     import __main__
 
     games = []
 
-    for i in range(numGames):
-        # TODO: properly define agents
-        agents = [pacman] + ghosts[:layout.getNumGhosts()]
-        initState = GameState()
-        game = Game(agents)
-        game.state = initState
+    for i in range(numGames + numTraining):
+        game = Game(agent)
+        game.state = GameState()
         game.run()
-        # TODO: need this part?
-        games.append(game)
+        if (i > numTraining):
+            games.append(game)
 
-    if (numGames-numTraining) > 0:
-        scores = [game.state.getScore() for game in games]
-        wins = [game.state.isWin() for game in games]
-        winRate = wins.count(True) / float(len(wins))
-        print 'Average Score:', sum(scores) / float(len(scores))
-        print 'Scores:       ', ', '.join([str(score) for score in scores])
-        print 'Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate)
-        print 'Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins])
-
+    scores = [game.state.getScore() for game in games]
+    print 'Average Score:', sum(scores) / float(len(scores))
+    print 'Scores:       ', ', '.join([str(score) for score in scores])
     return games
 
 if __name__ == '__main__':
