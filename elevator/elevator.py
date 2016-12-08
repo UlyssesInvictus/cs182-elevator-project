@@ -215,18 +215,7 @@ class GameState:
         # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
         # -score = 0
 
-<<<<<<< HEAD
-        # TODO: some initial generateArrivals functions:
-        # -people just go up to random floors, arriving with poisson distribution for some rate
-        # -people just leave from random floors, arriving with poisson distribution for some rate
-        # -people move from random floors to random floors, poisson
-        # -union samples from the first three distributions with fixed rates
-        # -union samples from the first three distributions with rates that vary periodically by timestep
-
-        if prevState is not None:
-=======
         if prev_state is not None:
->>>>>>> master
             # Parameters.
             self.num_elevators = prev_state.numElevators
             self.num_floors = prev_state.numFloors
