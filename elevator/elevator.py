@@ -40,8 +40,9 @@ To play your first game, type 'python pacman.py' from the command line.
 The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 """
 from game import Game
-import util, layout
+import util
 import sys, types, time, random, os, copy
+from qlearningAgents import *
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -175,7 +176,7 @@ class GameState:
 
     def getScore(self):
         # see generateSuccessor
-        return return float(self.score)
+        return float(self.score)
 
     def genArrival(self, timeStep):
         # TODO: debate lambdas for poisson processes
@@ -233,8 +234,8 @@ class GameState:
             self.elevator_capacity = 10
             self.generate_arrivals = lambda timestep: [(0, 5)]
             self.timestep = 0
-            self.elevators = [{floor: 0, riders: []} for _ in range(self.num_elevators)]
-            self.waiting_riders = [[] for _ in range(n)]
+            self.elevators = [{"floor": 0, "riders": []} for _ in range(self.num_elevators)]
+            self.waiting_riders = [[] for _ in range(self.num_floors)]
             self.score = 0
 
     def __hash__( self ):
@@ -289,6 +290,8 @@ def readCommand(argv):
                       help='Fixes the random seed to always play the same game', default=False)
     parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
                       help=default('How many episodes are training (suppresses output)'), default=0)
+    parser.add_option('-s', '--numSteps', dest='numSteps', type='int',
+                      help=default('How many steps should the game run for?'), default=100)
     # TODO: add more important properties
     # see init in GameState
 
@@ -301,24 +304,22 @@ def readCommand(argv):
     if options.fixRandomSeed:
         random.seed('cs182')
 
-    # Don't display training games
-    if 'numTrain' in agentOpts:
-        options.numQuiet = int(agentOpts['numTrain'])
-        options.numIgnore = int(agentOpts['numTrain'])
-
+    args['numTraining'] = options.numTraining
     args['numGames'] = options.numGames
+    args['numSteps'] = options.numSteps
     return args
 
 
-def runGames(agent, numGames, numTraining=0):
+def runGames(numGames, numTraining, numSteps):
     import __main__
 
     games = []
 
     for i in range(numGames + numTraining):
+        agent = QLearningAgent()
         game = Game(agent)
         game.state = GameState()
-        game.run()
+        game.run(numSteps)
         if (i > numTraining):
             games.append(game)
 

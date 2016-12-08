@@ -56,7 +56,6 @@ class Game:
     """
 
     def __init__(self, agent, startingIndex=0):
-        self.agentCrashed = False
         self.agent = agent
         self.startingIndex = startingIndex
         self.gameOver = False
