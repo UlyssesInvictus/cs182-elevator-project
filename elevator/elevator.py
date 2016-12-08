@@ -168,8 +168,9 @@ class GameState:
         # Add new arrivals.
         for src, dest in successor.generateArrivals(successor.timestep):
             successor.waiting_riders[src].append((dest, 0))
-        for floor_list in successor.waiting_riders
-            floor_list.sort()
+        # maintain sort invariant for correct hashing
+        for i in range(len(successor.waiting_riders)):
+            floor_list = sorted(floor_list)
         return successor
 
     def getScore(self):
@@ -284,18 +285,8 @@ def readCommand(argv):
 
     parser.add_option('-n', '--numGames', dest='numGames', type='int',
                       help=default('the number of GAMES to play'), metavar='GAMES', default=1)
-    parser.add_option('-p', '--pacman', dest='pacman',
-                      help=default('the agent TYPE in the pacmanAgents module to use'),
-                      metavar='TYPE', default='KeyboardAgent')
-    parser.add_option('-g', '--ghosts', dest='ghost',
-                      help=default('the ghost agent TYPE in the ghostAgents module to use'),
-                      metavar = 'TYPE', default='RandomGhost')
     parser.add_option('-f', '--fixRandomSeed', action='store_true', dest='fixRandomSeed',
                       help='Fixes the random seed to always play the same game', default=False)
-    parser.add_option('-r', '--recordActions', action='store_true', dest='record',
-                      help='Writes game histories to a file (named by the time they were played)', default=False)
-    parser.add_option('-a','--agentArgs',dest='agentArgs',
-                      help='Comma separated values sent to agent. e.g. "opt1=val1,opt2,opt3=val3"')
     parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
                       help=default('How many episodes are training (suppresses output)'), default=0)
     # TODO: add more important properties
@@ -308,13 +299,7 @@ def readCommand(argv):
 
     # Fix the random seed
     if options.fixRandomSeed:
-        random.seed('cs188')
-
-    # TODO: Choose a Pacman agent
-    args['pacman'] = None
-    # TODO: Choose a ghost agent
-    ghostType = loadAgent(options.ghost, noKeyboard)
-    args['ghosts'] = [ghostType( i+1 ) for i in range( options.numGhosts )]
+        random.seed('cs182')
 
     # Don't display training games
     if 'numTrain' in agentOpts:
@@ -322,7 +307,6 @@ def readCommand(argv):
         options.numIgnore = int(agentOpts['numTrain'])
 
     args['numGames'] = options.numGames
-
     return args
 
 
@@ -345,16 +329,16 @@ def runGames(agent, numGames, numTraining=0):
 
 if __name__ == '__main__':
     """
-    The main function called when pacman.py is run
+    The main function called when elevator.py is run
     from the command line:
 
-    > python pacman.py
+    > python elevator.py
 
     See the usage string for more details.
 
-    > python pacman.py --help
+    > python elevator.py --help
     """
-    args = readCommand(sys.argv[1:]) # Get game components based on input
+    args = readCommand(sys.argv[1:])  # Get game components based on input
     runGames(**args)
 
     pass
