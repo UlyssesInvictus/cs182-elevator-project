@@ -80,6 +80,7 @@ class GameState:
         can_stall = True
         can_go_down = elevator.floor > 0
         can_go_up = elevator.floor < self.numFloors - 1
+        must_open = False
 
         # Never stall or change direction on a rider.
         for rider in elevator.riders:
@@ -125,7 +126,7 @@ class GameState:
         lists = getCombinations(map(range(k), getLegalActionsForSingleElevator))
         return [tuple(action_list) for action_list in lists]
 
-    def generateSuccessor(self, agentIndex, action):
+    def generateSuccessor(self, action):
         """
         Returns the successor state after the specified agent takes the action.
         """
@@ -156,9 +157,11 @@ class GameState:
                         updated_waiting.append((dest, wait))
                 successor.waiting_riders[elevator.floor] = updated_waiting
         # Update waiting passenger wait times.
-        for floor_list in successor.waiting_riders:
-            for dest, wait in len(floor_list):
-                floor_list[i] = (dest, wait + 1)
+        for i in range(len(successor.waiting_riders)):
+            floor_list = successor.waiting_riders[i]
+            for j in range(len(floor_list)):
+                dest, wait = floor_list[j]
+                floor_list[j] = (dest, wait + 1)
                 successor.score -= (wait + 1)
         # Add new arrivals.
         for src, dest in successor.generateArrivals(successor.timestep):
