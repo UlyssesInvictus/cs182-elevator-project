@@ -185,9 +185,9 @@ class GameState:
 
     def generateArrivals(self, timeStep):
         # TODO: debate lambdas for poisson processes
-        lGroundSource = 1  # maybe exponential decay from time: 0 to end?
-        lGroundDest = 1  # maybe exponential decay from time: end to 0?
-        lRandom = 1  # maybe constant?
+        lGroundSource = 0.2  # maybe exponential decay from time: 0 to end?
+        lGroundDest = 0.2  # maybe exponential decay from time: end to 0?
+        lRandom = 0.2  # maybe constant?
 
         # lots of riders are arriving at the ground: lambda = #/timestep
         groundSource = [(0, random.randint(1, self.num_floors-1))
@@ -309,7 +309,7 @@ def readCommand(argv):
                       help=default('the number of GAMES to play'), metavar='GAMES', default=1)
     parser.add_option('-f', '--fixRandomSeed', action='store_true', dest='fixRandomSeed',
                       help='Fixes the random seed to always play the same game', default=False)
-    parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
+    parser.add_option('-t', '--numTraining', dest='numTraining', type='int',
                       help=default('How many episodes are training (suppresses output)'), default=0)
     parser.add_option('-s', '--numSteps', dest='numSteps', type='int',
                       help=default('How many steps should the game run for?'), default=100)
@@ -340,16 +340,20 @@ def runGames(numGames, numTraining, numSteps, quiet):
 
     games = []
 
+    # things to pass into agent:
+    # alpha    - learning rate (default 0.5)
+    # epsilon  - exploration rate (default 0.5)
+    # gamma    - discount factor (default 1)
+    agent = QLearningAgent(numTraining=numTraining)
     for i in range(numGames + numTraining):
-        agent = QLearningAgent()
         game = Game(agent)
         game.state = GameState()
         game.run(numSteps, quiet)
         if (i >= numTraining):
             games.append(game)
-            print 'Running episode (%d/%d) of actual' % (i-numTraining+1, numGames)
+            print 'Ran episode (%d/%d) of actual: score (%d)' % (i-numTraining+1, numGames, game.state.getScore())
         else:
-            print 'Running episode (%d/%d) of training' % (i, numTraining)
+            print 'Ran (%d/%d) of training: score (%d)' % (i, numTraining, game.state.getScore())
 
     scores = [game.state.getScore() for game in games]
     print 'Average Score:', sum(scores) / float(len(scores))
