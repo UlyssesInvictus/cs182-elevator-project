@@ -206,7 +206,7 @@ class ReinforcementAgent(ValueEstimationAgent):
             This is where we ended up after our last action.
             The simulation should somehow ensure this is called
         """
-        if not self.lastState is None:
+        if self.lastState is not None:
             reward = state.getScore() - self.lastState.getScore()
             self.observeTransition(self.lastState, self.lastAction, state, reward)
         return state

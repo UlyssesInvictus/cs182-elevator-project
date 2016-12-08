@@ -82,6 +82,7 @@ class Game:
 
         while not self.gameOver:
             # Generate an observation of the state
+            print self.state
             observation = agent.observationFunction(self.state.deepCopy())
             # Solicit an action
             action = agent.getAction(observation)

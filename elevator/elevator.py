@@ -106,8 +106,10 @@ class GameState:
             actions.append("UP")
             actions.append("OPEN_UP")
         if must_open:
-            actions.remove("UP")
-            actions.remove("DOWN")
+            if "UP" in actions:
+                actions.remove("UP")
+            if "DOWN" in actions:
+                actions.remove("DOWN")
         return actions
 
     # Maps a list of lists to a list of selections from each list.
@@ -245,7 +247,7 @@ class GameState:
             self.waiting_riders = [[] for _ in range(self.num_floors)]
             self.score = 0
 
-    def __hash__( self ):
+    def __hash__(self):
         """
         Allows states to be keys of dictionaries.
         """
@@ -256,6 +258,17 @@ class GameState:
         for rider_list in self.waiting_riders:
             data.append(tuple(rider_list))
         return hash(tuple(data))
+
+    def __str__(self):
+        stats = 'Time: %d, Score: %d\n' % (self.timestep, self.score)
+        elevators = ""
+        for i in range(self.num_elevators):
+            e = self.elevators[i]
+            elevators += "El. %d: Floor %d, %d riders\n" % (i, e['floor'],
+                                                            len(e['riders']))
+        riders = str([len(floor) for floor in self.waiting_riders])
+        return stats + elevators + riders
+
 
 #############################
 # FRAMEWORK TO START A GAME #
