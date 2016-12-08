@@ -74,7 +74,7 @@ class Game:
         """
         Main control loop for game play.
         """
-        self.numMoves = 0
+        self.num_moves = 0
 
         # inform learning agents of the game start
         agent = self.agent
@@ -87,10 +87,10 @@ class Game:
             action = agent.getAction(observation)
             # Execute the action
             self.moveHistory.append((0, action))
-            self.state = self.state.generateSuccessor(0, action)
+            self.state = self.state.generateSuccessor(action)
             # Track progress
-            self.numMoves += 1
-            if numMoves > num_steps:
+            self.num_moves += 1
+            if self.num_moves > num_steps:
                 self.gameOver = True
 
         # inform a learning agent of the game result

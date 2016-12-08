@@ -43,6 +43,7 @@ from game import Game
 import util
 import sys, types, time, random, os, copy
 from qlearningAgents import *
+from numpy.random import poisson
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -79,17 +80,18 @@ class GameState:
         elevator = self.elevators[elevator_id]
         # Default to physical limitations.
         can_stall = True
-        can_go_down = elevator.floor > 0
-        can_go_up = elevator.floor < self.numFloors - 1
+        can_go_down = elevator['floor'] > 0
+        can_go_up = elevator['floor'] < self.num_floors - 1
         must_open = False
-        can_go_up = elevator.floor < self.num_floors - 1
+        can_go_up = elevator['floor'] < self.num_floors - 1
 
         # Never stall or change direction on a rider.
-        for rider in elevator.riders:
+        for rider in elevator['riders']:
+            dest, wait = rider
             can_stall = False
-            if rider.dest < elevator.floor:
+            if dest < elevator['floor']:
                 can_go_up = False
-            elif rider.dest > elevator.floor:
+            elif dest > elevator['floor']:
                 can_go_down = False
             else:
                 must_open = True
@@ -97,10 +99,10 @@ class GameState:
         actions = []
         if can_stall:
             actions.append("STALL")
-        if can_can_go_down:
+        if can_go_down:
             actions.append("DOWN")
             actions.append("OPEN_DOWN")
-        if can_can_go_up:
+        if can_go_up:
             actions.append("UP")
             actions.append("OPEN_UP")
         if must_open:
@@ -125,7 +127,8 @@ class GameState:
         """
         Returns the legal actions for the agent specified.
         """
-        lists = getCombinations(map(range(k), getLegalActionsForSingleElevator))
+        lists = self.getCombinations(map(self.getLegalActionsForSingleElevator,
+                                         range(self.num_elevators)))
         return [tuple(action_list) for action_list in lists]
 
     def generateSuccessor(self, action):
@@ -135,30 +138,30 @@ class GameState:
         successor = GameState(self)
         successor.timestep += 1
         # Elevator logic.
-        for i in len(successor.elevators):
+        for i in range(len(successor.elevators)):
             elevator = successor.elevators[i]
             if action[i] == "UP":
-                elevator.floor += 1
+                elevator['floor'] += 1
             elif action[i] == "DOWN":
-                elevator.floor -= 1
+                elevator['floor'] -= 1
             elif action[i] == "OPEN_UP" or action[i] == "OPEN_DOWN":
                 # Riders either get off or cause a waiting penalty.
                 updated_riders = []
-                for dest, wait in elevator.riders:
-                    if dest != elevator.floor:
+                for dest, wait in elevator['riders']:
+                    if dest != elevator['floor']:
                         updated_riders.append((dest, wait + 1))
                     successor.score -= wait + 1
-                elevator.riders = updated_riders
+                elevator['riders'] = updated_riders
                 # Waiting riders on the floor can get on.
                 updated_waiting = []
-                for dest, wait in successor.waiting_riders[elevator.floor]:
-                    if ((dest > elevator.floor) == (action[i] == "OPEN_UP") and
-                            (len(elevator.riders) < c)):
-                        elevator.riders.append((dest, wait))
+                for dest, wait in successor.waiting_riders[elevator['floor']]:
+                    if ((dest > elevator['floor']) == (action[i] == "OPEN_UP") and
+                            (len(elevator['riders']) < self.elevator_capacity)):
+                        elevator['riders'].append((dest, wait))
                     else:
                         updated_waiting.append((dest, wait))
-                successor.waiting_riders[elevator.floor] = updated_waiting
-                elevator.riders.sort()
+                successor.waiting_riders[elevator['floor']] = updated_waiting
+                elevator['riders'].sort()
         # Update waiting passenger wait times.
         for i in range(len(successor.waiting_riders)):
             floor_list = successor.waiting_riders[i]
@@ -178,7 +181,7 @@ class GameState:
         # see generateSuccessor
         return float(self.score)
 
-    def genArrival(self, timeStep):
+    def generateArrivals(self, timeStep):
         # TODO: debate lambdas for poisson processes
         lGroundSource = 1  # maybe exponential decay from time: 0 to end?
         lGroundDest = 1  # maybe exponential decay from time: end to 0?
@@ -186,13 +189,13 @@ class GameState:
 
         # lots of riders are arriving at the ground: lambda = #/timestep
         groundSource = [(0, random.randint(1, self.num_floors-1))
-                        for _ in poisson(lGroundSource)]
+                        for _ in range(poisson(lGroundSource))]
         # lots of riders also want to get to the ground: lambda = #/timestep
         groundDest = [(random.randint(1, self.num_floors-1), 0)
-                      for _ in poisson(lGroundDest)]
+                      for _ in range(poisson(lGroundDest))]
         # lots of random other movement throughout
         randomRiders = []
-        for _ in poisson(lRandom):
+        for _ in range(poisson(lRandom)):
             source = random.randint(0, self.num_floors-1)
             while True:
                 dest = random.randint(0, self.num_floors-1)
@@ -200,6 +203,10 @@ class GameState:
                     break
             randomRiders += [(source, dest)]
         return groundSource + groundDest + randomRiders
+
+    def deepCopy(self):
+        state = GameState(self)
+        return state
 
     def __init__(self, prev_state=None):
         """
@@ -219,14 +226,14 @@ class GameState:
 
         if prev_state is not None:
             # Parameters.
-            self.num_elevators = prev_state.numElevators
-            self.num_floors = prev_state.numFloors
-            self.elevator_capacity = prev_state.elevatorCapacity
-            self.generate_arrivals = prev_state.generateArrivals
+            self.num_elevators = prev_state.num_elevators
+            self.num_floors = prev_state.num_floors
+            self.elevator_capacity = prev_state.elevator_capacity
+            self.generate_arrivals = prev_state.generate_arrivals
             # Simulation state.
             self.timestep = prev_state.timestep
-            self.elevators = copy.deepCopy(prev_state.elevators)
-            self.waiting_riders = copy.deepCopy(prev_state.waiting_riders)
+            self.elevators = copy.deepcopy(prev_state.elevators)
+            self.waiting_riders = copy.deepcopy(prev_state.waiting_riders)
             self.score = prev_state.score
         else:
             self.num_elevators = 1
@@ -244,8 +251,8 @@ class GameState:
         """
         data = [self.timestep, self.score]
         for elevator in self.elevators:
-            data.append(elevator.floor)
-            data.append(tuple(elevator.riders))
+            data.append(elevator['floor'])
+            data.append(tuple(elevator['riders']))
         for rider_list in self.waiting_riders:
             data.append(tuple(rider_list))
         return hash(tuple(data))
