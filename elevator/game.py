@@ -70,7 +70,7 @@ class Game:
             # TODO: set this properly?
             return 0.0
 
-    def run(self, num_steps):
+    def run(self, num_steps, quiet):
         """
         Main control loop for game play.
         """
@@ -82,10 +82,15 @@ class Game:
 
         while not self.gameOver:
             # Generate an observation of the state
-            print self.state
             observation = agent.observationFunction(self.state.deepCopy())
+            if not quiet:
+                print observation
             # Solicit an action
             action = agent.getAction(observation)
+            # explicitly done in PacmanQLearningAgent
+            # but for some reason we need to do it here...very weird...
+            # (compare QLearningAgent.getAction and PacmanQLA.getAction)
+            agent.doAction(observation, action)
             # Execute the action
             self.moveHistory.append((0, action))
             self.state = self.state.generateSuccessor(action)

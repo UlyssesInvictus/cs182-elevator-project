@@ -213,8 +213,9 @@ class ReinforcementAgent(ValueEstimationAgent):
 
     def registerInitialState(self, state):
         self.startEpisode()
-        if self.episodesSoFar == 0:
-            print 'Beginning %d episodes of Training' % (self.numTraining)
+        # do this in driver instead
+        # if self.episodesSoFar == 0:
+        #     print 'Beginning %d episodes of Training' % (self.numTraining)
 
     def final(self, state):
         """

@@ -264,9 +264,10 @@ class GameState:
         elevators = ""
         for i in range(self.num_elevators):
             e = self.elevators[i]
-            elevators += "El. %d: Floor %d, %d riders\n" % (i, e['floor'],
-                                                            len(e['riders']))
-        riders = str([len(floor) for floor in self.waiting_riders])
+            elevators += ("El. %d: Floor (%d), Riders (%d)\n" %
+                          (i, e['floor'], len(e['riders'])))
+        riders = ('Riders/floor: ' +
+                  str([len(floor) for floor in self.waiting_riders]))
         return stats + elevators + riders
 
 
@@ -312,6 +313,8 @@ def readCommand(argv):
                       help=default('How many episodes are training (suppresses output)'), default=0)
     parser.add_option('-s', '--numSteps', dest='numSteps', type='int',
                       help=default('How many steps should the game run for?'), default=100)
+    parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
+                      help=default('Silence the game state reports?'), default=False)
     # TODO: add more important properties
     # see init in GameState
 
@@ -328,10 +331,11 @@ def readCommand(argv):
     args['numTraining'] = options.numTraining
     args['numGames'] = options.numGames
     args['numSteps'] = options.numSteps
+    args['quiet'] = options.quiet
     return args
 
 
-def runGames(numGames, numTraining, numSteps):
+def runGames(numGames, numTraining, numSteps, quiet):
     import __main__
 
     games = []
@@ -340,9 +344,12 @@ def runGames(numGames, numTraining, numSteps):
         agent = QLearningAgent()
         game = Game(agent)
         game.state = GameState()
-        game.run(numSteps)
-        if (i > numTraining):
+        game.run(numSteps, quiet)
+        if (i >= numTraining):
             games.append(game)
+            print 'Running episode (%d/%d) of actual' % (i-numTraining+1, numGames)
+        else:
+            print 'Running episode (%d/%d) of training' % (i, numTraining)
 
     scores = [game.state.getScore() for game in games]
     print 'Average Score:', sum(scores) / float(len(scores))
