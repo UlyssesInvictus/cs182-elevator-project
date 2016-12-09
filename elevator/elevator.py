@@ -43,6 +43,7 @@ from game import Game
 import util
 import sys, types, time, random, os, copy
 from qlearningAgents import *
+from naiveAgent import *
 from numpy.random import seed, poisson
 
 ###################################################
@@ -326,6 +327,8 @@ def readCommand(argv):
                       help=default('How many steps should the game run for?'), default=100)
     parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
                       help=default('Silence the game state reports?'), default=False)
+    parser.add_option('-a', '--agentType', dest='agentType',
+                      help=default('Which agent to run?'), default='naive')
     # TODO: add more important properties
     # see init in GameState
 
@@ -343,6 +346,7 @@ def readCommand(argv):
     args['numGames'] = options.numGames
     args['numSteps'] = options.numSteps
     args['quiet'] = options.quiet
+    args['agentType'] = options.agentType
     return args
 
 
@@ -389,31 +393,36 @@ def runMonteCarlo():
     print state.getScore()
 
 
-def runGames(numGames, numTraining, numSteps, quiet):
-    # import __main__
+def runGames(numGames, numTraining, numSteps, quiet, agentType):
+    import __main__
 
-    # games = []
+    games = []
 
-    # # things to pass into agent:
-    # # alpha    - learning rate (default 0.5)
-    # # epsilon  - exploration rate (default 0.5)
-    # # gamma    - discount factor (default 1)
-    # agent = QLearningAgent(numTraining=numTraining)
-    # for i in range(numGames + numTraining):
-    #     game = Game(agent)
-    #     game.state = GameState()
-    #     game.run(numSteps, quiet)
-    #     if (i >= numTraining):
-    #         games.append(game)
-    #         print 'Ran episode (%d/%d) of actual: score (%d)' % (i-numTraining+1, numGames, game.state.getScore())
-    #     else:
-    #         print 'Ran (%d/%d) of training: score (%d)' % (i, numTraining, game.state.getScore())
+    if agentType == 'monte':
+        runMonteCarlo()
+    elif agentType == 'rl':
+        agent = QLearningAgent(numTraining=numTraining)
+    else:
+        agent = NaiveAgent()
 
-    # scores = [game.state.getScore() for game in games]
-    # print 'Average Score:', sum(scores) / float(len(scores))
-    # print 'Scores:       ', ', '.join([str(score) for score in scores])
-    # return games
-    runMonteCarlo()
+    # things to pass into agent:
+    # alpha    - learning rate (default 0.5)
+    # epsilon  - exploration rate (default 0.5)
+    # gamma    - discount factor (default 1)
+    for i in range(numGames + numTraining):
+        game = Game(agent)
+        game.state = GameState()
+        game.run(numSteps, quiet)
+        if i >= numTraining:
+            games.append(game)
+            print 'Ran episode (%d/%d) of actual: score (%d)' % (i-numTraining+1, numGames, game.state.getScore())
+        else:
+            print 'Ran (%d/%d) of training: score (%d)' % (i, numTraining, game.state.getScore())
+
+    scores = [game.state.getScore() for game in games]
+    print 'Average Score:', sum(scores) / float(len(scores))
+    print 'Scores:       ', ', '.join([str(score) for score in scores])
+    return games
 
 if __name__ == '__main__':
     """

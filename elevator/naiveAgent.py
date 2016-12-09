@@ -52,6 +52,11 @@ class NaiveAgent(Agent):
         all_riders.sort(key=lambda x: -x[2])
         # assign elevators until gone
         while len(empty) > 0:
+            # if no riders left, just stall
+            if len(all_riders) == 0:
+                for e in empty:
+                    chosen_actions[e] = 'STALL'
+                break
             # get the rider with longest wait
             candidate = all_riders[0]
             all_riders.remove(candidate)
@@ -72,3 +77,16 @@ class NaiveAgent(Agent):
             else:
                 chosen_actions[chosen_elevator] = 'OPEN_DOWN'
         return tuple(chosen_actions)
+
+    # methods just to make game driver happy when called
+    def doAction(self, observation, action):
+        return None
+
+    def registerInitialState(self, state):
+        return
+
+    def observationFunction(self, state):
+        return state
+
+    def final(self, state):
+        return
