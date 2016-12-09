@@ -367,43 +367,22 @@ def readCommand(argv):
 
 def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
                   capacity=20, traffic=0.25):
-    print "monte carlo"
     def getPrunedActions(state, prev_action):
         actions = state.getLegalActions()
-        if prev_action == None:
+        if prev_action == None or random.random() > 0.8:
             return actions
-        available_targets = []
-        for i in range(len(state.waiting_riders)):
-            for _, wait in state.waiting_riders[i]:
-                for j in range(wait):
-                    available_targets.append(i)
-        for elevator in state.elevators:
-            available_targets.append(None)
-            available_targets.append(0)
-            if elevator["target"] != None and elevator["target"] in available_targets:
-                available_targets.remove(elevator["target"])
-            if elevator["floor"] == elevator["target"]:
-                elevator["target"] = None
-
         original_actions = actions[:]
         for i in range(len(prev_action)):
-            elevator = state.elevators[i]
-            r = random.random()
-            if ((elevator["target"] == None and r < 0.5) or
-                    (elevator["target"] != None and r < 0.1)):
-                available_targets.append(elevator["target"])
-                elevator["target"] = random.choice(available_targets)
-            if elevator["target"] != None and random.random() > 0.1:
+            if prev_action[i] == "UP" or prev_action[i] == "DOWN":
                 new_actions = []
                 keep_all = False
                 for j in range(len(actions)):
-                    if (elevator["target"] > elevator["floor"] and
-                            actions[j][i] == "UP"):
+                    if actions[j][i] == prev_action[i]:
                         new_actions.append(actions[j])
-                    elif (elevator["target"] < elevator["floor"] and
-                            actions[j][i] == "DOWN"):
-                        new_actions.append(actions[j])
-                if len(new_actions) > 0:
+                    elif (actions[j][i] == "OPEN_UP" or
+                            actions[j][i] == "OPEN_DOWN"):
+                        keep_all = True
+                if not keep_all:
                     actions = new_actions
         if len(actions) > 0:
             return actions
@@ -412,47 +391,39 @@ def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
     # Run to 100 timesteps.
     state = GameState(num_elevators=num_elevators, num_floors=num_floors,
                       capacity=capacity, traffic=traffic)
-    for elevator in state.elevators:
-        elevator["target"] = None
     prev_action = None
 
     while state.timestep < num_timesteps:
-        print "===="
-        print state.timestep
-        print state.getScore()
-        print state.waiting_riders
-        print [elevator["floor"] for elevator in state.elevators]
-        print [elevator["target"] for elevator in state.elevators]
-        print [elevator["riders"] for elevator in state.elevators]
-        actions = getPrunedActions(GameState(state), prev_action)
-        print actions
+        # print "===="
+        # print state.timestep
+        # print state.getScore()
+        # print state.waiting_riders
+        # print [elevator["floor"] for elevator in state.elevators]
+        # print [elevator["riders"] for elevator in state.elevators]
+        actions = getPrunedActions(state, prev_action)
+        # print actions
         if len(actions) == 1:
             state = state.generateSuccessor(actions[0])
             prev_action = actions[0]
         else:
-            best_state = None
             best_score = None
             best_action = None
-            for _ in range(20 * len(actions)):
+            for _ in range(100):
                 # Remember the first action.
-                sim_state = GameState(state)
-                first_action = random.choice(getPrunedActions(sim_state, prev_action))                
-                sim_state = sim_state.generateSuccessor(first_action)
+                first_action = random.choice(actions)
+                sim_state = state.generateSuccessor(first_action)
                 # Each simulation goes 20 timesteps out.
                 action = None
-                for _ in range(40):
+                for _ in range(10):
                     action = random.choice(getPrunedActions(sim_state, action))
                     sim_state = sim_state.generateSuccessor(action)
                 if best_score == None or sim_state.getScore() > best_score:
                     best_score = sim_state.getScore()
                     best_action = first_action
-                    best_state = sim_state
             # Take the best action.
             state = state.generateSuccessor(best_action)
             prev_action = best_action
-            for i in range(len(state.elevators)):
-                state.elevators[i]["target"] = best_state.elevators[i]["target"]
-        print prev_action
+        # print prev_action
     print state.getScore()
 
 # this is such stupid argument management...but gotta go fast
@@ -463,8 +434,9 @@ def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
     games = []
 
     if agentType == 'monte':
-        runMonteCarlo(num_elevators=numElevators, num_floors=numFloors,
-                      capacity=capacity, traffic=traffic)
+        for _ in range(100):
+            runMonteCarlo(num_elevators=numElevators, num_floors=numFloors,
+                          capacity=capacity, traffic=traffic)
         return
     elif agentType == 'rl':
         agent = QLearningAgent(numTraining=numTraining)
