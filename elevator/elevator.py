@@ -243,6 +243,7 @@ class GameState:
             self.elevator_capacity = 10
             self.generate_arrivals = lambda timestep: [(0, 5)]
             self.timestep = 0
+            # each rider is (destination, waittime) tuple
             self.elevators = [{"floor": 0, "riders": []} for _ in range(self.num_elevators)]
             self.waiting_riders = [[] for _ in range(self.num_floors)]
             self.score = 0
