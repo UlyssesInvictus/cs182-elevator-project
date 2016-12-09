@@ -221,7 +221,8 @@ class GameState:
         state = GameState(self)
         return state
 
-    def __init__(self, prev_state=None):
+    def __init__(self, prev_state=None, num_elevators=1, num_floors=10,
+                 capacity=20):
         """
         Generates a new state by copying information from its predecessor.
         """
@@ -249,9 +250,9 @@ class GameState:
             self.waiting_riders = copy.deepcopy(prev_state.waiting_riders)
             self.score = prev_state.score
         else:
-            self.num_elevators = 1
-            self.num_floors = 10
-            self.elevator_capacity = 10
+            self.num_elevators = num_elevators
+            self.num_floors = num_floors
+            self.elevator_capacity = capacity
             self.generate_arrivals = lambda timestep: [(0, 5)]
             self.timestep = 0
             # each rider is (destination, waittime) tuple
@@ -329,6 +330,12 @@ def readCommand(argv):
                       help=default('Silence the game state reports?'), default=False)
     parser.add_option('-a', '--agentType', dest='agentType',
                       help=default('Which agent to run?'), default='naive')
+    parser.add_option('-e', '--numElevators', dest='numElevators',
+                      help=default('How many elevators?'), default=4)
+    parser.add_option('-x', '--numFloors', dest='numFloors',
+                      help=default('How many floors?'), default=10)
+    parser.add_option('-c', '--capacity', dest='capacity',
+                      help=default('Capacity per elevator?'), default=20)
     # TODO: add more important properties
     # see init in GameState
 
@@ -347,6 +354,9 @@ def readCommand(argv):
     args['numSteps'] = options.numSteps
     args['quiet'] = options.quiet
     args['agentType'] = options.agentType
+    args['numElevators'] = options.numElevators
+    args['numFloors'] = options.numFloors
+    args['capacity'] = options.capacity
     return args
 
 
@@ -410,8 +420,9 @@ def runMonteCarlo():
         print prev_action
     print state.getScore()
 
-
-def runGames(numGames, numTraining, numSteps, quiet, agentType):
+# this is such stupid argument management...but gotta go fast
+def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
+             numFloors, capacity):
     import __main__
 
     games = []
@@ -430,7 +441,8 @@ def runGames(numGames, numTraining, numSteps, quiet, agentType):
     # gamma    - discount factor (default 1)
     for i in range(numGames + numTraining):
         game = Game(agent)
-        game.state = GameState()
+        game.state = GameState(num_elevators=numElevators, num_floors=numFloors,
+                               capacity=capacity)
         game.run(numSteps, quiet)
         if i >= numTraining:
             games.append(game)
