@@ -83,7 +83,6 @@ class GameState:
         can_go_down = elevator['floor'] > 0
         can_go_up = elevator['floor'] < self.num_floors - 1
         must_open = False
-        can_go_up = elevator['floor'] < self.num_floors - 1
 
         # Never stall or change direction on a rider.
         for rider in elevator['riders']:

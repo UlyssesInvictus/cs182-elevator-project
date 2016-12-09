@@ -22,20 +22,53 @@ class NaiveAgent(Agent):
         for a in actions:
             for e in range(num_elevators):
                 actions_per_el[e].add(a[e])
-        chosen_action = []
-        # get list of all waiting riders
+        # temp of actions in order per elevator
+        chosen_actions = ["" for _ in range(num_elevators)]
+        # split into empty and non-empty elevators
+        empty, carrying = [], []
+        for i in range(state.num_elevators):
+            if len(state.elevators[i]['riders']) == 0:
+                empty.append(i)
+            else:
+                carrying.append(i)
+        # take care of the non-empty ones
+        for i in carrying:
+            # first, open if you have a reason to (determined by legal actions)
+            # priority goes to up if both are available
+            # otherwise continue as requested, checking for each direction
+            # (should never have the case where both are possible and el.
+            # has passengers in it)
+            for a in ["OPEN_UP", "OPEN_DOWN", "UP", "DOWN"]:
+                if a in actions_per_el[i]:
+                    chosen_actions[i] = a
+                    break
+        # then, assign directions to empty elevators
+        # sort list of all riders by waittime decr.
+        # TODO: intelligently break ties?
         all_riders = []
         for f in range(state.num_floors):
             for dest, wait in state.waiting_riders[f]:
                 all_riders.append((f, dest, wait))
-        for e in state.elevators:
-            # if empty
-            if len(e['riders']) == 0:
-                if len(all_riders) == 0:
-                    chosen_action.append('STALL')
-                else:
-                    # this is slow, but easy to code
-                    # just resort the riders every time we need to figure out
-                    # who to retrieve
-                    # sort by decr. wait time, and then incr. dist from elevator
-                    all_riders.sort(key=lambda x: (-x[2], abs(x[0] - e['floor'])))
+        all_riders.sort(key=lambda x: -x[2])
+        # assign elevators until gone
+        while len(empty) > 0:
+            # get the rider with longest wait
+            candidate = all_riders[0]
+            all_riders.remove(candidate)
+            # find the closest elevator
+            elevator_dists = [(e, abs(state.elevators[e]['floor'] - candidate[0])) for e in empty]
+            elevator_dists.sort(key=lambda x: x[1])
+            chosen_elevator = elevator_dists[0][0]
+            empty.remove(chosen_elevator)
+            # set a direction for the closest elevator
+            if candidate[0] > state.elevators[chosen_elevator]['floor']:
+                chosen_actions[chosen_elevator] = 'UP'
+            elif candidate[0] < state.elevators[chosen_elevator]['floor']:
+                chosen_actions[chosen_elevator] = 'DOWN'
+            # notably, only open for rider on the same floor
+            # if they're the longest waiting one!!
+            elif candidate[1] > candidate[0]:
+                chosen_actions[chosen_elevator] = 'OPEN_UP'
+            else:
+                chosen_actions[chosen_elevator] = 'OPEN_DOWN'
+        return tuple(chosen_actions)
