@@ -196,9 +196,9 @@ class GameState:
 
     def generateArrivals(self, timestep):
         # TODO: debate lambdas for poisson processes
-        lGroundSource = 0.1  # maybe exponential decay from time: 0 to end?
-        lGroundDest = 0.1  # maybe exponential decay from time: end to 0?
-        lRandom = 0.1  # maybe constant?
+        lGroundSource = self.traffic  # maybe exponential decay from time: 0 to end?
+        lGroundDest = self.traffic  # maybe exponential decay from time: end to 0?
+        lRandom = self.traffic  # maybe constant?
 
         # lots of riders are arriving at the ground: lambda = #/timestep
         groundSource = [(0, random.randint(1, self.num_floors-1))
@@ -221,8 +221,8 @@ class GameState:
         state = GameState(self)
         return state
 
-    def __init__(self, prev_state=None, num_elevators=4, num_floors=10,
-                 capacity=20):
+    def __init__(self, prev_state=None, num_elevators=1, num_floors=10,
+                 capacity=20, traffic=0.25):
         """
         Generates a new state by copying information from its predecessor.
         """
@@ -249,6 +249,7 @@ class GameState:
             self.elevators = copy.deepcopy(prev_state.elevators)
             self.waiting_riders = copy.deepcopy(prev_state.waiting_riders)
             self.score = prev_state.score
+            self.traffic = prev_state.traffic
         else:
             self.num_elevators = num_elevators
             self.num_floors = num_floors
@@ -259,6 +260,7 @@ class GameState:
             self.elevators = [{"floor": 0, "riders": []} for _ in range(self.num_elevators)]
             self.waiting_riders = [[] for _ in range(self.num_floors)]
             self.score = 0
+            self.traffic = traffic
 
     def __hash__(self):
         """
@@ -336,6 +338,8 @@ def readCommand(argv):
                       help=default('How many floors?'), default=10)
     parser.add_option('-c', '--capacity', dest='capacity',
                       help=default('Capacity per elevator?'), default=20)
+    parser.add_option('-z', '--traffic', dest='traffic',
+                      help=default('Poisson lambda for traffic?'), default=0.25)
     # TODO: add more important properties
     # see init in GameState
 
@@ -357,10 +361,12 @@ def readCommand(argv):
     args['numElevators'] = options.numElevators
     args['numFloors'] = options.numFloors
     args['capacity'] = options.capacity
+    args['traffic'] = options.traffic
     return args
 
 
-def runMonteCarlo():
+def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
+                  capacity=20, traffic=0.25):
     print "monte carlo"
     def getPrunedActions(state, prev_action):
         actions = state.getLegalActions()
@@ -384,10 +390,11 @@ def runMonteCarlo():
         return original_actions
 
     # Run to 100 timesteps.
-    state = GameState()
+    state = GameState(num_elevators=numElevators, num_floors=numFloors,
+                      capacity=capacity, traffic=traffic)
     prev_action = None
-    
-    while state.timestep < 100:
+
+    while state.timestep < num_timesteps:
         print "===="
         print state.timestep
         print state.getScore()
@@ -422,13 +429,14 @@ def runMonteCarlo():
 
 # this is such stupid argument management...but gotta go fast
 def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
-             numFloors, capacity):
+             numFloors, capacity, traffic):
     import __main__
 
     games = []
 
     if agentType == 'monte':
-        runMonteCarlo()
+        runMonteCarlo(num_elevators=numElevators, num_floors=numFloors,
+                      capacity=capacity, traffic=traffic)
         return
     elif agentType == 'rl':
         agent = QLearningAgent(numTraining=numTraining)
@@ -442,7 +450,7 @@ def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
     for i in range(numGames + numTraining):
         game = Game(agent)
         game.state = GameState(num_elevators=numElevators, num_floors=numFloors,
-                               capacity=capacity)
+                               capacity=capacity, traffic=traffic)
         game.run(numSteps, quiet)
         if i >= numTraining:
             games.append(game)
