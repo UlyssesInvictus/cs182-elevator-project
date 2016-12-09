@@ -96,15 +96,25 @@ class GameState:
             else:
                 must_open = True
 
+        can_open_down = False
+        can_open_up = False
+        for dest, wait in self.waiting_riders[elevator['floor']]:
+            if dest < elevator['floor']:
+                can_open_down = True
+            if dest > elevator['floor']:
+                can_open_up = True
+
         actions = []
         if can_stall:
             actions.append("STALL")
         if can_go_down:
             actions.append("DOWN")
-            actions.append("OPEN_DOWN")
+            if must_open or can_open_down:
+                actions.append("OPEN_DOWN")
         if can_go_up:
             actions.append("UP")
-            actions.append("OPEN_UP")
+            if must_open or can_open_up:
+                actions.append("OPEN_UP")
         if must_open:
             if "UP" in actions:
                 actions.remove("UP")
@@ -185,9 +195,9 @@ class GameState:
 
     def generateArrivals(self, timestep):
         # TODO: debate lambdas for poisson processes
-        lGroundSource = 0.2  # maybe exponential decay from time: 0 to end?
-        lGroundDest = 0.2  # maybe exponential decay from time: end to 0?
-        lRandom = 0.2  # maybe constant?
+        lGroundSource = 0.1  # maybe exponential decay from time: 0 to end?
+        lGroundDest = 0.1  # maybe exponential decay from time: end to 0?
+        lRandom = 0.1  # maybe constant?
 
         # lots of riders are arriving at the ground: lambda = #/timestep
         groundSource = [(0, random.randint(1, self.num_floors-1))
@@ -340,27 +350,41 @@ def runMonteCarlo():
     state = GameState()
     # Run to 100 timesteps.
     while state.timestep < 100:
-        print "action"
+        print "===="
+        print state.timestep
+        print state.getScore()
+        print state.waiting_riders
+        print state.elevators[0]["floor"]
+        print state.elevators[0]["riders"]
         actions = state.getLegalActions()
+        final_action = None
         if len(actions) == 1:
             state = state.generateSuccessor(actions[0])
+            final_action = actions[0]
         else:
             best_score = None
             best_action = None
+            if final_action == "UP" or final_action  == "DOWN":
+                if actions.contains(final_action) and random.random() > 0.1:
+                    state = state.generateSuccessor(best_action)
+                    continue
             # Run 10000 random simulations.
             for _ in range(1000):
                 # Remember the first action.
                 first_action = random.choice(actions)
                 sim_state = state.generateSuccessor(first_action)
                 # Each simulation goes 20 timesteps out.
-                for _ in range(25):
+                for _ in range(50):
                     action = random.choice(sim_state.getLegalActions())
                     sim_state = sim_state.generateSuccessor(action)
-                if best_score == None or sim_state.getScore() < best_score:
+                if best_score == None or sim_state.getScore() > best_score:
                     best_score = sim_state.getScore()
                     best_action = first_action
             # Take the best action.
             state = state.generateSuccessor(best_action)
+            final_action = best_action
+        print actions
+        print final_action
     print state.getScore()
 
 
