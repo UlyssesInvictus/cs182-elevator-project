@@ -367,10 +367,9 @@ def readCommand(argv):
 
 def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
                   capacity=20, traffic=0.25):
-    print "monte carlo"
     def getPrunedActions(state, prev_action):
         actions = state.getLegalActions()
-        if prev_action == None:
+        if prev_action == None or random.random() > 0.8:
             return actions
         original_actions = actions[:]
         for i in range(len(prev_action)):
@@ -390,31 +389,32 @@ def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
         return original_actions
 
     # Run to 100 timesteps.
-    state = GameState(num_elevators=numElevators, num_floors=numFloors,
+    state = GameState(num_elevators=num_elevators, num_floors=num_floors,
                       capacity=capacity, traffic=traffic)
     prev_action = None
 
     while state.timestep < num_timesteps:
-        print "===="
-        print state.timestep
-        print state.getScore()
-        print state.waiting_riders
-        print state.elevators[0]["floor"]
-        print state.elevators[0]["riders"]
+        # print "===="
+        # print state.timestep
+        # print state.getScore()
+        # print state.waiting_riders
+        # print [elevator["floor"] for elevator in state.elevators]
+        # print [elevator["riders"] for elevator in state.elevators]
         actions = getPrunedActions(state, prev_action)
+        # print actions
         if len(actions) == 1:
             state = state.generateSuccessor(actions[0])
             prev_action = actions[0]
         else:
             best_score = None
             best_action = None
-            for _ in range(300):
+            for _ in range(100):
                 # Remember the first action.
                 first_action = random.choice(actions)
                 sim_state = state.generateSuccessor(first_action)
                 # Each simulation goes 20 timesteps out.
                 action = None
-                for _ in range(50):
+                for _ in range(10):
                     action = random.choice(getPrunedActions(sim_state, action))
                     sim_state = sim_state.generateSuccessor(action)
                 if best_score == None or sim_state.getScore() > best_score:
@@ -423,8 +423,7 @@ def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
             # Take the best action.
             state = state.generateSuccessor(best_action)
             prev_action = best_action
-        print actions
-        print prev_action
+        # print prev_action
     print state.getScore()
 
 # this is such stupid argument management...but gotta go fast
@@ -435,8 +434,9 @@ def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
     games = []
 
     if agentType == 'monte':
-        runMonteCarlo(num_elevators=numElevators, num_floors=numFloors,
-                      capacity=capacity, traffic=traffic)
+        for _ in range(100):
+            runMonteCarlo(num_elevators=numElevators, num_floors=numFloors,
+                          capacity=capacity, traffic=traffic)
         return
     elif agentType == 'rl':
         agent = QLearningAgent(numTraining=numTraining)
