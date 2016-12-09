@@ -173,7 +173,7 @@ class GameState:
                     else:
                         updated_waiting.append((dest, wait))
                 successor.waiting_riders[elevator['floor']] = updated_waiting
-                elevator['riders'].sort()
+                elevator['riders'].sort(key=lambda x: -x[1])
         # Update waiting passenger wait times.
         for i in range(len(successor.waiting_riders)):
             floor_list = successor.waiting_riders[i]
@@ -186,7 +186,8 @@ class GameState:
             successor.waiting_riders[src].append((dest, 0))
         # maintain sort invariant for correct hashing
         for i in range(len(successor.waiting_riders)):
-            floor_list = sorted(floor_list)
+            # sort by wait time, decreasing
+            floor_list.sort(key=lambda x: -x[1])
         return successor
 
     def getScore(self):
