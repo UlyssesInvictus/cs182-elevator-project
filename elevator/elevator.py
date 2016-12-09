@@ -221,7 +221,7 @@ class GameState:
         state = GameState(self)
         return state
 
-    def __init__(self, prev_state=None, num_elevators=1, num_floors=10,
+    def __init__(self, prev_state=None, num_elevators=4, num_floors=10,
                  capacity=20):
         """
         Generates a new state by copying information from its predecessor.
@@ -364,7 +364,7 @@ def runMonteCarlo():
     print "monte carlo"
     def getPrunedActions(state, prev_action):
         actions = state.getLegalActions()
-        if prev_action == None:
+        if prev_action == None or random.random() > 0.8:
             return actions
         original_actions = actions[:]
         for i in range(len(prev_action)):
@@ -392,22 +392,23 @@ def runMonteCarlo():
         print state.timestep
         print state.getScore()
         print state.waiting_riders
-        print state.elevators[0]["floor"]
-        print state.elevators[0]["riders"]
+        print [elevator["floor"] for elevator in state.elevators]
+        print [elevator["riders"] for elevator in state.elevators]
         actions = getPrunedActions(state, prev_action)
+        print actions
         if len(actions) == 1:
             state = state.generateSuccessor(actions[0])
             prev_action = actions[0]
         else:
             best_score = None
             best_action = None
-            for _ in range(300):
+            for _ in range(400):
                 # Remember the first action.
                 first_action = random.choice(actions)
                 sim_state = state.generateSuccessor(first_action)
                 # Each simulation goes 20 timesteps out.
                 action = None
-                for _ in range(50):
+                for _ in range(70):
                     action = random.choice(getPrunedActions(sim_state, action))
                     sim_state = sim_state.generateSuccessor(action)
                 if best_score == None or sim_state.getScore() > best_score:
@@ -416,7 +417,6 @@ def runMonteCarlo():
             # Take the best action.
             state = state.generateSuccessor(best_action)
             prev_action = best_action
-        print actions
         print prev_action
     print state.getScore()
 
