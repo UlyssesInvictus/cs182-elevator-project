@@ -257,7 +257,7 @@ class GameState:
             self.generate_arrivals = lambda timestep: [(0, 5)]
             self.timestep = 0
             # each rider is (destination, waittime) tuple
-            self.elevators = [{"floor": 0, "riders": []} for _ in range(self.num_elevators)]
+            self.elevators = [{"floor": 0, "riders": []} for _ in range(num_elevators)]
             self.waiting_riders = [[] for _ in range(self.num_floors)]
             self.score = 0
             self.traffic = traffic
@@ -358,8 +358,8 @@ def readCommand(argv):
     args['numSteps'] = options.numSteps
     args['quiet'] = options.quiet
     args['agentType'] = options.agentType
-    args['numElevators'] = options.numElevators
-    args['numFloors'] = options.numFloors
+    args['numElevators'] = int(options.numElevators)
+    args['numFloors'] = int(options.numFloors)
     args['capacity'] = options.capacity
     args['traffic'] = options.traffic
     return args
@@ -424,7 +424,7 @@ def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
             state = state.generateSuccessor(best_action)
             prev_action = best_action
         # print prev_action
-    print state.getScore()
+    return state.getScore()
 
 # this is such stupid argument management...but gotta go fast
 def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
@@ -434,9 +434,12 @@ def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
     games = []
 
     if agentType == 'monte':
-        for _ in range(100):
-            runMonteCarlo(num_elevators=numElevators, num_floors=numFloors,
-                          capacity=capacity, traffic=traffic)
+        scores = []
+        for i in range(100):
+            score = runMonteCarlo(num_elevators=numElevators, num_floors=numFloors,
+                         capacity=capacity, traffic=traffic)
+            print 'Episode %d: score (%f)' % (i, score)
+        print scores
         return
     elif agentType == 'rl':
         agent = QLearningAgent(numTraining=numTraining)
