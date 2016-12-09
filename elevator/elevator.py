@@ -400,6 +400,7 @@ def runGames(numGames, numTraining, numSteps, quiet, agentType):
 
     if agentType == 'monte':
         runMonteCarlo()
+        return
     elif agentType == 'rl':
         agent = QLearningAgent(numTraining=numTraining)
     else:
