@@ -1,9 +1,8 @@
-# pacman.py
+# elevator.py
+# This code was developed from the Pacman AI projects developed
+# for Berkeley's CS 188 homework assignments. The original attribution
+# is below.
 # ---------
-# Licensing Information:  You are free to use or extend these projects for
-# educational purposes provided that (1) you do not distribute or publish
-# solutions, (2) you retain this notice, and (3) you provide clear
-# attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
 #
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
@@ -13,32 +12,29 @@
 
 
 """
-Pacman.py holds the logic for the classic pacman game along with the main
-code to run a game.  This file is divided into three sections:
+elevator.py holds the logic for the elevator simulation along with the main
+code to run a game. This file is divided into three sections:
 
-  (i)  Your interface to the pacman world:
-          Pacman is a complex environment.  You probably don't want to
-          read through all of the code we wrote to make the game runs
-          correctly.  This section contains the parts of the code
-          that you will need to understand in order to complete the
-          project.  There is also some code in game.py that you should
-          understand.
-
-  (ii)  The hidden secrets of pacman:
-          This section contains all of the logic code that the pacman
-          environment uses to decide who can move where, who dies when
-          things collide, etc.  You shouldn't need to read this section
-          of code, but you can if you want.
-
+  (i)  The elevator "game" state:
+          This section contains all the parts of the code
+          that describe how elevators function, including:
+          - what information the game knows, mostly parameters
+          - what information elevators and riders know
+          - what elevators are allowed to do given their current position
+            and riders
+          - how the state will change given a series of actions selected
+            for each elevator, especially how score changes
+          - how riders arrive
+  (ii)  The entirety of the Monte Carlo framework.
+          It uses the same GameState class as RL and Naive methods, but
+          doesn't use the driver in game.py and called by runGames()--
+          instead, it manages all of the running itself.
   (iii) Framework to start a game:
           The final section contains the code for reading the command
-          you use to set up the game, then starting up a new game, along with
-          linking in all the external parts (agent functions, graphics).
+          you use to set up the game, then starting up a new game.
           Check this section out to see all the options available to you.
-
-To play your first game, type 'python pacman.py' from the command line.
-The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 """
+
 from game import Game
 import util
 import sys, types, time, random, os, copy
@@ -52,17 +48,17 @@ from numpy.random import seed, poisson
 
 class GameState:
     """
-    A GameState specifies the full game state, including the food, capsules,
-    agent configurations and score changes.
+    A GameState specifies the full game state, including the elevators,
+    riders, and score changes.
 
     GameStates are used by the Game object to capture the actual state of the game and
     can be used by agents to reason about the game.
 
-    Much of the information in a GameState is stored in a GameStateData object.  We
-    strongly suggest that you access that data via the accessor methods below rather
-    than referring to the GameStateData object directly.
+    Unlike the original Pacman project, the GameState is not a wrapper around
+    a GameStateData object: it contains most of its information directly.
 
-    Note that in classic Pacman, Pacman is always agent 0.
+    Note that, unlike Pacman, the system of all elevators are considered
+    a single agent acting at once.
     """
 
     ####################################################
@@ -77,6 +73,13 @@ class GameState:
         return tmp
     getAndResetExplored = staticmethod(getAndResetExplored)
 
+    # get the actions possible for a single elevator based
+    # on its floor and the riders it's carrying
+    # there are four legel actions:
+    # - UP, DOWN (move up or down)
+    # - OPEN_UP, OPEN_DOWN (open while indicating the elevator intends to
+    # go in that direction next; it's not a guarantee though!)
+    # - STALL (just wait!)
     def getLegalActionsForSingleElevator(self, elevator_id):
         elevator = self.elevators[elevator_id]
         # Default to physical limitations.
@@ -96,6 +99,8 @@ class GameState:
             else:
                 must_open = True
 
+        # Don't do stupid things based on a rider waiting outside
+        # (Like open to go up if they're going down)
         can_open_down = False
         can_open_up = False
         for dest, wait in self.waiting_riders[elevator['floor']]:
@@ -104,6 +109,7 @@ class GameState:
             if dest > elevator['floor']:
                 can_open_up = True
 
+        # generate final list
         actions = []
         if can_stall:
             actions.append("STALL")
@@ -135,12 +141,17 @@ class GameState:
                 combinations.append(combination)
         return combinations
 
+    # ignore the "agentIndex" part--that's to keep the legacy agents happy
+    # while passing in parameters
     def getLegalActions(self, agentIndex=0):
         """
         Returns the legal actions for the agent specified.
         """
+        # note that a single "action" actually describes the actions for
+        # all elevators--thus the need to generate all possible permutations
         lists = self.getCombinations(map(self.getLegalActionsForSingleElevator,
                                          range(self.num_elevators)))
+        # pass tuples so actions can be hashed
         return [tuple(action_list) for action_list in lists]
 
     def generateSuccessor(self, action):
@@ -195,7 +206,7 @@ class GameState:
         return float(self.score)
 
     def generateArrivals(self, timestep):
-        # TODO: debate lambdas for poisson processes
+        # TODO: possible extension--non-constant lambdas
         lGroundSource = self.traffic  # maybe exponential decay from time: 0 to end?
         lGroundDest = self.traffic  # maybe exponential decay from time: end to 0?
         lRandom = self.traffic  # maybe constant?
@@ -215,6 +226,7 @@ class GameState:
                 if dest != source:
                     break
             randomRiders += [(source, dest)]
+        # combine all three!
         return groundSource + groundDest + randomRiders
 
     def deepCopy(self):
@@ -226,17 +238,6 @@ class GameState:
         """
         Generates a new state by copying information from its predecessor.
         """
-        # State is:
-        # *parameters*
-        # -numFloors (n)
-        # -numElevators (k)
-        # -elevatorCapacity (c)
-        # -generateArrivals (function to generate src/dest pairs for people arriving at a timestep)
-        # *state*
-        # timestep = 0
-        # -waiting_riders = [[] for _ in range(n)] : lists by floor of dest/wait_time triples
-        # -elevators = [{floor: 0, riders: []} for _ in range(k)] : riders is a list of dest/wait_time pairs
-        # -score = 0
 
         if prev_state is not None:
             # Parameters.
@@ -257,7 +258,10 @@ class GameState:
             self.generate_arrivals = lambda timestep: [(0, 5)]
             self.timestep = 0
             # each rider is (destination, waittime) tuple
+            # source is unnecessary since it doesn't matter for riders in elev.
+            # and waiting_riders contain it in the index
             self.elevators = [{"floor": 0, "riders": []} for _ in range(num_elevators)]
+            # index of waiting_riders = floor
             self.waiting_riders = [[] for _ in range(self.num_floors)]
             self.score = 0
             self.traffic = traffic
@@ -367,6 +371,11 @@ def readCommand(argv):
 
 def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
                   capacity=20, traffic=0.25):
+    """
+    Run a Monte Carlo simulation of elevators.
+    Differs in output from the standard game driver, but
+    relies on the same GameState and obeys the same logic.
+    """
     def getPrunedActions(state, prev_action):
         actions = state.getLegalActions()
         if prev_action == None or random.random() > 0.8:
@@ -394,20 +403,14 @@ def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
     prev_action = None
 
     while state.timestep < num_timesteps:
-        # print "===="
-        # print state.timestep
-        # print state.getScore()
-        # print state.waiting_riders
-        # print [elevator["floor"] for elevator in state.elevators]
-        # print [elevator["riders"] for elevator in state.elevators]
         actions = getPrunedActions(state, prev_action)
-        # print actions
         if len(actions) == 1:
             state = state.generateSuccessor(actions[0])
             prev_action = actions[0]
         else:
             best_score = None
             best_action = None
+            # TODO: allow passing of Monte Carlo sim. parameters
             for _ in range(100):
                 # Remember the first action.
                 first_action = random.choice(actions)
@@ -423,12 +426,17 @@ def runMonteCarlo(num_timesteps=100, num_elevators=1, num_floors=10,
             # Take the best action.
             state = state.generateSuccessor(best_action)
             prev_action = best_action
-        # print prev_action
     return state.getScore()
 
-# this is such stupid argument management...but gotta go fast
 def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
              numFloors, capacity, traffic):
+    """
+    Main driver for running elevator simulations.
+    Receives parameters from the command line and passes them to the
+    Monte Carlo, RL, or naive simulations.
+    If runnign RL or naive, then reports the average score.
+    """
+
     import __main__
 
     games = []
@@ -446,7 +454,7 @@ def runGames(numGames, numTraining, numSteps, quiet, agentType, numElevators,
     else:
         agent = NaiveAgent()
 
-    # things to pass into agent:
+    # TODO: things to pass into agent:
     # alpha    - learning rate (default 0.5)
     # epsilon  - exploration rate (default 0.5)
     # gamma    - discount factor (default 1)

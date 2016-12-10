@@ -1,5 +1,13 @@
+# naiveAgent.py
+# ---------------
+# Built from scratch, but class structure was modeled on the learningAgents
+# from the cs188 Pacman project.
+#
+# Builds a naiveAgent that has deterministic strategy to solving elevator
+# model. See class for description.
+
 from game import Agent
-import random,util,time
+import random, util, time
 
 class NaiveAgent(Agent):
     """Naive solution to elevator stategy:
@@ -12,8 +20,7 @@ class NaiveAgent(Agent):
         - Can drop off passengers and pick them up if on the way.
     """
 
-    # we could make this code cleaner by building the surrounding class
-    # but who cares?
+    # TODO: make this code cleaner by building the surrounding class
     def getAction(self, state):
         actions = state.getLegalActions()
         # build list of actions per elevator for ease of use
@@ -78,7 +85,8 @@ class NaiveAgent(Agent):
                 chosen_actions[chosen_elevator] = 'OPEN_DOWN'
         return tuple(chosen_actions)
 
-    # methods just to make game driver happy when called
+    # methods just to make game driver happy when called,
+    # since it otherwise assumes learning agent methods
     def doAction(self, observation, action):
         return None
 
